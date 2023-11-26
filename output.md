@@ -388,11 +388,54 @@ export default Background;
 
 // lib/socket.ts
 ```
+// lib/socket.ts
+
+import GoEasy from 'goeasy'; // 或者您使用的WebSocket服务的库
+
+// 初始化GoEasy
+const goEasy = new GoEasy({
+    host: 'hangzhou.goeasy.io',
+    appkey: 'BC-affe1c6cf16b45b49790dce021506d53',
+    modules: ['pubsub']
+});
+
+     //建立连接
+     goEasy.connect({
+        onSuccess: function () { //连接成功
+            console.log("GoEasy connect successfully.") //连接成功
+        },
+        onFailed: function (error) { //连接失败
+            console.log("Failed to connect GoEasy, code:"+error.code+ ",error:"+error.content);
+        }
+    });
+
+// 设置消息监听
+export function setupMessageListener(onMessageReceived) {
+    goEasy.pubsub.subscribe({
+        channel: 'chatmed', // 替换为您的频道名
+        onMessage: onMessageReceived,
+        onSuccess: function () {
+            console.log("Channel订阅成功。");
+        },
+        onFailed: function (error) {
+            console.log("Channel订阅失败, 错误编码：" + error.code + " 错误信息：" + error.content)
+        }
+    });
+}
+
+// 发送消息
+export function sendMessage(message) {
+    goEasy.publish({
+        channel: 'chatmed', // 替换为您的频道名
+        message: message
+    });
+}
 ```
 
 // contexts/ChatContext.tsx
 ```
 import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { setupMessageListener, sendMessage as sendWebSocketMessage } from '../lib/socket';
 
 // 定义消息类型
 type MessageType = {
@@ -406,14 +449,12 @@ type MessageType = {
 type ChatContextType = {
   messages: MessageType[];
   sendMessage: (message: string) => void;
-  receiveMessage: (message: string) => void;
 };
 
 // 初始Context值
 const defaultContextValue: ChatContextType = {
   messages: [],
   sendMessage: () => {},
-  receiveMessage: () => {},
 };
 
 // 创建Context
@@ -424,44 +465,37 @@ let nextMessageId = 0;
 
 // Context提供者组件
 const ChatProvider: React.FC = ({ children }) => {
-  const [messages, setMessages] = useState<MessageType[]>([]); // 消息列表状态
+  const [messages, setMessages] = useState<MessageType[]>([]);
 
   // 发送消息函数
   const sendMessage = useCallback((text: string) => {
     const newMessage: MessageType = {
       id: nextMessageId++,
+      // id: nextMessageId.toString(), // 将id转换为字符串
       text,
       isUser: true,
       timestamp: new Date(),
     };
     setMessages((prevMessages) => [...prevMessages, newMessage]);
-    // 这里可以添加将消息发送到服务器的逻辑
+    sendWebSocketMessage(JSON.stringify({ ...newMessage, id: newMessage.id.toString() })); // 将id转换为字符串
   }, []);
 
   // 接收消息函数
-  const receiveMessage = useCallback((text: string) => {
-    const newMessage: MessageType = {
-      id: nextMessageId++,
-      text,
-      isUser: false,
-      timestamp: new Date(),
-    };
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    // 这里可以添加接收服务器消息的逻辑
+  const onMessageReceived = useCallback((message) => {
+    const parsedMessage = JSON.parse(message.content); // 假设消息内容是JSON字符串
+    if (!parsedMessage.isUser) {
+      setMessages((prevMessages) => [...prevMessages, { ...parsedMessage, id: parseInt(parsedMessage.id, 10) }]); // 将id转换回数字
+    }
   }, []);
 
-  // 使用useEffect来模拟接收AI消息的响应
-  // 这只是一个示例，实际上你可能会使用WebSockets或其他方法来实时接收消息
+  // 使用useEffect来设置监听器
   useEffect(() => {
-    // 这里可以设置监听服务器消息的逻辑
-    // 假设这是从服务器接收到的消息
-    const fakeAImessage = "欢迎使用ChatMed，有什么可以帮到您的吗？";
-    receiveMessage(fakeAImessage);
-  }, [receiveMessage]);
+    setupMessageListener(onMessageReceived);
+  }, [onMessageReceived]);
 
   // 返回Provider组件
   return (
-    <ChatContext.Provider value={{ messages, sendMessage, receiveMessage }}>
+    <ChatContext.Provider value={{ messages, sendMessage }}>
       {children}
     </ChatContext.Provider>
   );

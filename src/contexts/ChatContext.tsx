@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-import socket from '../lib/socket';
+import { setupMessageListener, sendMessage as sendWebSocketMessage } from '../lib/socket';
+
 // 定义消息类型
 type MessageType = {
   id: number; // 每条消息的唯一ID
@@ -12,14 +13,12 @@ type MessageType = {
 type ChatContextType = {
   messages: MessageType[];
   sendMessage: (message: string) => void;
-  receiveMessage: (message: MessageType) => void;
 };
 
 // 初始Context值
 const defaultContextValue: ChatContextType = {
   messages: [],
   sendMessage: () => {},
-  receiveMessage: () => {},
 };
 
 // 创建Context
@@ -30,38 +29,37 @@ let nextMessageId = 0;
 
 // Context提供者组件
 const ChatProvider: React.FC = ({ children }) => {
-  const [messages, setMessages] = useState<MessageType[]>([]); // 消息列表状态
+  const [messages, setMessages] = useState<MessageType[]>([]);
 
   // 发送消息函数
   const sendMessage = useCallback((text: string) => {
     const newMessage: MessageType = {
       id: nextMessageId++,
+      // id: nextMessageId.toString(), // 将id转换为字符串
       text,
       isUser: true,
       timestamp: new Date(),
     };
     setMessages((prevMessages) => [...prevMessages, newMessage]);
-    socket.emit('chat message', newMessage); // 发送消息到服务器
+    sendWebSocketMessage(JSON.stringify({ ...newMessage, id: newMessage.id.toString() })); // 将id转换为字符串
   }, []);
 
   // 接收消息函数
- const receiveMessage = useCallback((message: MessageType) => {
-  setMessages((prevMessages) => [...prevMessages, message]);
-}, []);
+  const onMessageReceived = useCallback((message) => {
+    const parsedMessage = JSON.parse(message.content); // 假设消息内容是JSON字符串
+    if (!parsedMessage.isUser) {
+      setMessages((prevMessages) => [...prevMessages, { ...parsedMessage, id: parseInt(parsedMessage.id, 10) }]); // 将id转换回数字
+    }
+  }, []);
 
-// 使用useEffect来监听来自服务器的消息
-useEffect(() => {
-  socket.on('chat message', receiveMessage);
-
-  // 清理函数
-  return () => {
-    socket.off('chat message', receiveMessage);
-  };
-}, [receiveMessage]);
+  // 使用useEffect来设置监听器
+  useEffect(() => {
+    setupMessageListener(onMessageReceived);
+  }, [onMessageReceived]);
 
   // 返回Provider组件
   return (
-    <ChatContext.Provider value={{ messages, sendMessage, receiveMessage }}>
+    <ChatContext.Provider value={{ messages, sendMessage }}>
       {children}
     </ChatContext.Provider>
   );
