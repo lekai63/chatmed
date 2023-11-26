@@ -25,3 +25,71 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+
+/* globals.css */
+@layer components {
+  .chat-container {
+    @apply min-h-screen flex flex-col items-center justify-between mx-auto;
+    width: 90%; /* 根据你的设计调整宽度 */
+    height: 85%; /* 根据你的设计调整高度 */
+    background-color: rgba(255, 255, 255, 0.85); /* 调整透明度 */
+    /* 确保背景颜色只应用到该容器，而不影响子组件 */
+    isolation: isolate; 
+  }
+
+  .chat-box {
+    @apply w-full h-full p-[2px]; /* w-full 和 h-full 使得组件尽可能大，p-[2px] 在周围留下2像素的内边距 */
+  }
+
+  .chat-message-list {
+    @apply overflow-y-auto flex-1 w-full p-4;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* 使得消息在右边对齐 */
+  }
+
+  .chat-input-box {
+    @apply border-t-2 border-gray-200 p-2;
+  }
+
+  .chat-message {
+    @apply mb-2 flex items-center p-2 rounded-lg;
+    max-width: 70%;  /* 限制最大宽度 */
+    display: flex; /* 使用flex布局 */
+    align-items: center; /* 垂直居中对齐 */
+  }
+
+  .user-message {
+    @apply bg-blue-500 text-white self-end justify-end rounded-lg; 
+    @apply flex-row justify-start items-center; /* 图标在左，内容在右 */
+  }
+  
+
+  /* 图标容器样式，用于用户消息 */
+  .user-message .icon-container {
+  @apply order-1 ml-2; /* 用户图标在内容的右侧，加上左边距 */
+}
+
+  .ai-message {
+    @apply bg-gray-200 text-gray-800 self-start justify-start rounded-lg; 
+    @apply flex-row; /* 当AI发消息时，图标在左，内容在右 */
+  }
+
+  /* 图标容器样式，用于AI消息 */
+  .ai-message .icon-container {
+    @apply order-first mr-2; /* AI图标在内容的左侧，加上右边距 */
+}
+
+  .icon-container {
+    flex-shrink: 0; /* 防止图标压缩 */
+  }
+
+/* 消息内容样式 */
+  .message-content {
+  @apply flex-grow break-words; /* 让文本内容占满剩余空间，自动换行 */
+}
+
+
+}
+
