@@ -1,23 +1,49 @@
 import OpenAI from 'openai';
 
+// 创建一个等待函数
+function waitForResponse(openai, threadId, runId) {
+  return new Promise((resolve, reject) => {
+    const checkStatus = async () => {
+      try {
+        const runStatus = await openai.beta.threads.runs.retrieve(
+          threadId,
+          runId,
+        );
+
+        if (runStatus.status !== 'queued' && runStatus.status !== 'in_progress') {
+          resolve(runStatus);
+        } else {
+          setTimeout(checkStatus, 500);
+        }
+      } catch (error) {
+        console.error(`Error while checking status for runId: ${runId}`, error);
+        reject(error);
+      }
+    };
+
+    checkStatus();
+  });
+}
+
+
 export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const { message } = req.body;
-    console.log("req.body:", message);
+  try {
+    if (req.method === 'POST') {
+      const { message } = req.body;
+      console.log("req.body:", message);
 
-    // 配置 OpenAI
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: "https://oai.hconeai.com/v1",
-      defaultHeaders: {
-        "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      },
-    });
+      // 配置 OpenAI
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+        baseURL: "https://oai.hconeai.com/v1",
+        defaultHeaders: {
+          "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+        },
+      });
 
-    // 设置 Assistant ID
-    const assistantId = process.env.OPENAI_ASSISTANT_ID;
+      // 设置 Assistant ID
+      const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
-    try {
       const run = await openai.beta.threads.createAndRun({
         assistant_id: assistantId,
         thread: {
@@ -26,30 +52,26 @@ export default async function handler(req, res) {
           ],
         },
       });
-      
-      console.log(run);
 
-      // 修正后的代码
-      if (run?.thread_id) {
-        const threadId = run.thread_id;
-        const threadMessages = await openai.beta.threads.messages.list(threadId);
-        console.log("all messages in thread ", threadId, "are:\n", threadMessages.data);
+      const threadId = run.thread_id;
 
-        if (threadMessages?.data?.length > 0) {
-          const latestMessage = threadMessages.data[0];
-          res.status(200).json({ success: true, response: latestMessage.content.text.value });
-        } else {
-          res.status(404).json({ success: false, error: 'No messages found in the thread' });
-        }
+      const completedRun = await waitForResponse(openai, threadId, run.id);
+ 
+      const threadMessages = await openai.beta.threads.messages.list(threadId);
+
+      if (threadMessages?.data?.length > 0) {
+        const latestMessage = threadMessages.data[0];
+        console.log("latestMessage.content[0]:",latestMessage.content[0])
+        res.status(200).json({ success: true, message: latestMessage.content[0].text.value });
       } else {
-        res.status(404).json({ success: false, error: 'Thread ID not found' });
+        res.status(404).json({ success: false, message: 'No messages found in the thread' });
       }
-    } catch (error) {
-      console.error('Error interacting with OpenAI:', error);
-      res.status(500).json({ success: false, error: 'Internal Server Error' });
+    } else {
+      res.setHeader('Allow', ['POST']);
+      res.status(405).json({ success: false, message: `Method ${req.method} Not Allowed` });
     }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+  } catch (error) {
+    console.error('Error interacting with OpenAI:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 }
