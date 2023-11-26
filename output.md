@@ -14,10 +14,11 @@
 ├── hooks
 │   └── useChat.ts
 ├── lib
-│   └── socket.ts
+│   └── sse.js
 ├── pages
 │   ├── api
-│   │   └── hello.ts
+│   │   ├── events.js
+│   │   └── send-message.js
 │   ├── _app.tsx
 │   ├── _document.tsx
 │   ├── index.tsx
@@ -31,7 +32,7 @@
 └── utils
     └── chatUtils.ts
 
-12 directories, 17 files
+12 directories, 18 files
 ```
 
 ## Part 2: Code
@@ -216,22 +217,82 @@ export default function Document() {
 }
 ```
 
-// pages/api/hello.ts
+// pages/api/send-message.js
 ```
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import type { NextApiRequest, NextApiResponse } from 'next'
+// pages/api/send-message.js
 
-type Data = {
-  name: string
-}
+import OpenAI from 'openai';
 
-export default function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<Data>
-) {
-  res.status(200).json({ name: 'John Doe' })
+export default async function handler(req, res) {
+  if (req.method === 'POST') {
+    const { message } = req.body;
+    console.log("req.body:",message)
+    // 配置 OpenAI
+    const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+        baseURL: "https://oai.hconeai.com/v1",
+        defaultHeaders: {
+          "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+        },
+      });
+
+    // 设置 Assistant ID
+    const assistantId = process.env.OPENAI_ASSISTANT_ID;
+
+    try {
+
+        const run = await openai.beta.threads.createAndRun({
+            assistant_id: assistantId,
+            thread: {
+              messages: [
+                { role: "user", content: message },
+              ],
+            },
+          });
+        
+          console.log(run);
+        }
+
+    // list all messages
+    const threadMessages = await openai.beta.threads.messages.list(
+        thread.id
+      );
+      console.log("all messages in thread ",thread.id,"are:\n",threadMessages.data)
+      msg=threadMessages.data[0]
+      // 返回 OpenAI 的响应
+      res.status(200).json({ success: true, response: threadMessages.data[0].content.text.value });
+    } catch (error) {
+      console.error('Error interacting with OpenAI:', error);
+      res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+  } else {
+    res.setHeader('Allow', ['POST']);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
 }
 ```
+
+// pages/api/events.js
+```
+// pages/api/events.js
+export default function handler(req, res) {
+    res.status(200).setHeader('Content-Type', 'text/event-stream')
+      .setHeader('Cache-Control', 'no-cache')
+      .setHeader('Connection', 'keep-alive')
+      .write('\n');
+  
+    // 将消息发送到客户端
+    const intervalId = setInterval(() => {
+      res.write(`data: ${JSON.stringify({ message: "Hello from the server!" })}\n\n`);
+    }, 1000);
+  
+    // 当客户端关闭连接时清理
+    req.on('close', () => {
+      clearInterval(intervalId);
+      res.end();
+    });
+  }
+  ```
 
 // components/ChatBox/Message.tsx
 ```
@@ -319,26 +380,55 @@ export default MessageList;
 
 // components/ChatBox/ChatBox.tsx
 ```
-// ChatBox.tsx
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import MessageList from './MessageList';
 import InputBox from './InputBox';
 import { ChatContext } from '../../contexts/ChatContext';
+import axios from 'axios'; // 引入 axios 用于发送消息
 
 const ChatBox = () => {
-  const { messages, sendMessage } = useContext(ChatContext);
+  const { messages, setMessages } = useContext(ChatContext);
   const [newMessage, setNewMessage] = useState('');
 
-  const handleSendMessage = () => {
-    sendMessage(newMessage);
-    setNewMessage('');
+  useEffect(() => {
+    // 初始化 SSE 连接
+    const eventSource = new EventSource('/api/events');
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      // 假设服务器返回的数据结构是 { text: string, isUser: boolean }
+      setMessages(prevMessages => [...prevMessages, data]);
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('EventSource failed:', error);
+      // 可以在这里添加重连逻辑
+      eventSource.close();
+    };
+
+    // 清理函数
+    return () => {
+      eventSource.close();
+    };
+  }, [setMessages]);
+
+  const handleSendMessage = async () => {
+    if (newMessage.trim()) {
+      // 发送消息到服务器
+      try {
+        await axios.post('/api/send-message', { message: newMessage });
+        setNewMessage('');
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
+    }
   };
 
   const handleInput = (event) => {
     setNewMessage(event.target.value);
   };
 
-  // 监听Enter键发送消息
+  // 监听 Enter 键发送消息
   const handleKeyPress = (event) => {
     if (event.key === 'Enter') {
       handleSendMessage();
@@ -346,9 +436,8 @@ const ChatBox = () => {
   };
 
   return (
-    <div className="chat-box flex flex-col h-full"> {/* Adjusted the class here */}
+    <div className="chat-box flex flex-col h-full">
       <MessageList messages={messages} />
-      <div className="pb-24 md:pb-16 lg:pb-10"></div> {/* Add spacing for the input box */}
       <InputBox
         value={newMessage}
         onChange={handleInput}
@@ -386,116 +475,58 @@ const Background = () => {
 export default Background;
 ```
 
-// lib/socket.ts
+// lib/sse.js
 ```
-// lib/socket.ts
+// lib/sse.js
 
-import GoEasy from 'goeasy'; // 或者您使用的WebSocket服务的库
-
-// 初始化GoEasy
-const goEasy = new GoEasy({
-    host: 'hangzhou.goeasy.io',
-    appkey: 'BC-affe1c6cf16b45b49790dce021506d53',
-    modules: ['pubsub']
-});
-
-     //建立连接
-     goEasy.connect({
-        onSuccess: function () { //连接成功
-            console.log("GoEasy connect successfully.") //连接成功
-        },
-        onFailed: function (error) { //连接失败
-            console.log("Failed to connect GoEasy, code:"+error.code+ ",error:"+error.content);
-        }
-    });
-
-// 设置消息监听
-export function setupMessageListener(onMessageReceived) {
-    goEasy.pubsub.subscribe({
-        channel: 'chatmed', // 替换为您的频道名
-        onMessage: onMessageReceived,
-        onSuccess: function () {
-            console.log("Channel订阅成功。");
-        },
-        onFailed: function (error) {
-            console.log("Channel订阅失败, 错误编码：" + error.code + " 错误信息：" + error.content)
-        }
-    });
-}
-
-// 发送消息
-export function sendMessage(message) {
-    goEasy.publish({
-        channel: 'chatmed', // 替换为您的频道名
-        message: message
-    });
-}
-```
+export const initSSE = (onMessageCallback) => {
+    const eventSource = new EventSource('/api/events');
+  
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      onMessageCallback(data);
+    };
+  
+    eventSource.onerror = (error) => {
+      console.error('EventSource failed:', error);
+      // 处理错误情况，例如重连逻辑
+    };
+  
+    return eventSource;
+  };
+  ```
 
 // contexts/ChatContext.tsx
 ```
-import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { setupMessageListener, sendMessage as sendWebSocketMessage } from '../lib/socket';
+// contexts/ChatContext.tsx
+import React, { createContext, useState } from 'react';
 
 // 定义消息类型
 type MessageType = {
-  id: number; // 每条消息的唯一ID
-  text: string; // 消息内容
-  isUser: boolean; // 是否用户消息
-  timestamp: Date; // 消息时间戳
+  id: number;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
 };
 
 // 定义Context的值类型
 type ChatContextType = {
   messages: MessageType[];
-  sendMessage: (message: string) => void;
-};
-
-// 初始Context值
-const defaultContextValue: ChatContextType = {
-  messages: [],
-  sendMessage: () => {},
+  setMessages: React.Dispatch<React.SetStateAction<MessageType[]>>;
 };
 
 // 创建Context
-export const ChatContext = createContext<ChatContextType>(defaultContextValue);
-
-// 消息ID生成器
-let nextMessageId = 0;
+export const ChatContext = createContext<ChatContextType>({
+  messages: [],
+  setMessages: () => {}, // 默认空实现
+});
 
 // Context提供者组件
 const ChatProvider: React.FC = ({ children }) => {
   const [messages, setMessages] = useState<MessageType[]>([]);
 
-  // 发送消息函数
-  const sendMessage = useCallback((text: string) => {
-    const newMessage: MessageType = {
-      id: nextMessageId++,
-      // id: nextMessageId.toString(), // 将id转换为字符串
-      text,
-      isUser: true,
-      timestamp: new Date(),
-    };
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    sendWebSocketMessage(JSON.stringify({ ...newMessage, id: newMessage.id.toString() })); // 将id转换为字符串
-  }, []);
-
-  // 接收消息函数
-  const onMessageReceived = useCallback((message) => {
-    const parsedMessage = JSON.parse(message.content); // 假设消息内容是JSON字符串
-    if (!parsedMessage.isUser) {
-      setMessages((prevMessages) => [...prevMessages, { ...parsedMessage, id: parseInt(parsedMessage.id, 10) }]); // 将id转换回数字
-    }
-  }, []);
-
-  // 使用useEffect来设置监听器
-  useEffect(() => {
-    setupMessageListener(onMessageReceived);
-  }, [onMessageReceived]);
-
-  // 返回Provider组件
   return (
-    <ChatContext.Provider value={{ messages, sendMessage }}>
+    <ChatContext.Provider value={{ messages, setMessages }}>
       {children}
     </ChatContext.Provider>
   );
@@ -514,6 +545,7 @@ export default ChatProvider;
 
 // services/chatService.ts
 ```
+
 ```
 
 // types/index.ts
