@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-
+import socket from '../lib/socket';
 // 定义消息类型
 type MessageType = {
   id: number; // 每条消息的唯一ID
@@ -12,7 +12,7 @@ type MessageType = {
 type ChatContextType = {
   messages: MessageType[];
   sendMessage: (message: string) => void;
-  receiveMessage: (message: string) => void;
+  receiveMessage: (message: MessageType) => void;
 };
 
 // 初始Context值
@@ -41,29 +41,23 @@ const ChatProvider: React.FC = ({ children }) => {
       timestamp: new Date(),
     };
     setMessages((prevMessages) => [...prevMessages, newMessage]);
-    // 这里可以添加将消息发送到服务器的逻辑
+    socket.emit('chat message', newMessage); // 发送消息到服务器
   }, []);
 
   // 接收消息函数
-  const receiveMessage = useCallback((text: string) => {
-    const newMessage: MessageType = {
-      id: nextMessageId++,
-      text,
-      isUser: false,
-      timestamp: new Date(),
-    };
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    // 这里可以添加接收服务器消息的逻辑
-  }, []);
+ const receiveMessage = useCallback((message: MessageType) => {
+  setMessages((prevMessages) => [...prevMessages, message]);
+}, []);
 
-  // 使用useEffect来模拟接收AI消息的响应
-  // 这只是一个示例，实际上你可能会使用WebSockets或其他方法来实时接收消息
-  useEffect(() => {
-    // 这里可以设置监听服务器消息的逻辑
-    // 假设这是从服务器接收到的消息
-    const fakeAImessage = "欢迎使用ChatMed，有什么可以帮到您的吗？";
-    receiveMessage(fakeAImessage);
-  }, [receiveMessage]);
+// 使用useEffect来监听来自服务器的消息
+useEffect(() => {
+  socket.on('chat message', receiveMessage);
+
+  // 清理函数
+  return () => {
+    socket.off('chat message', receiveMessage);
+  };
+}, [receiveMessage]);
 
   // 返回Provider组件
   return (
