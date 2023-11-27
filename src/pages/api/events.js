@@ -12,7 +12,7 @@ const consumer = kafka.consumer({ groupId: 'chat-group' });
 
 // Connecting the Kafka consumer
 consumer.connect();
-consumer.subscribe({ topic: 'chat-messages', fromBeginning: true });
+consumer.subscribe({ topic: 'chat-messages', fromBeginning: true });  //确保 topic `chat-messages` 已经在kafka服务端创建
 
 export default function handler(req, res) {
   res.writeHead(200, {
