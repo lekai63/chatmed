@@ -95,6 +95,19 @@ export default function Document() {
 // pages/api/send-message.js
 ```
 import OpenAI from 'openai';
+const { Kafka } = require('kafkajs');
+
+// Reading Kafka broker address from environment variables
+const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'localhost:9092';
+// Kafka setup
+const kafka = new Kafka({
+  clientId: 'chat-app',
+  brokers: [kafkaBrokerAddress]
+});
+const producer = kafka.producer();
+
+// Connect the Kafka producer
+producer.connect();
 
 // 创建一个等待函数
 function waitForResponse(openai, threadId, runId) {
@@ -158,7 +171,14 @@ export default async function handler(req, res) {
       if (threadMessages?.data?.length > 0) {
         const latestMessage = threadMessages.data[0];
         console.log("latestMessage.content[0]:",latestMessage.content[0])
-        res.status(200).json({ success: true, response: latestMessage.content[0].text.value });
+
+       // After getting the AI response
+       await producer.send({
+          topic: 'chat-messages',
+          messages: [{ value: JSON.stringify({ userMessage: message, aiMessage: latestMessage.content[0].text.value }) }],
+          });
+
+        res.status(200).json({ success: true });
       } else {
         res.status(404).json({ success: false, message: 'No messages found in the thread' });
       }
@@ -175,25 +195,44 @@ export default async function handler(req, res) {
 
 // pages/api/events.js
 ```
-// pages/api/events.js
+const { Kafka } = require('kafkajs');
+
+// Reading Kafka broker address from environment variables
+const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'localhost:9092';
+
+// Kafka setup
+const kafka = new Kafka({
+  clientId: 'chat-app',
+  brokers: [kafkaBrokerAddress]
+});
+const consumer = kafka.consumer({ groupId: 'chat-group' });
+
+// Connecting the Kafka consumer
+consumer.connect();
+consumer.subscribe({ topic: 'chat-messages', fromBeginning: true });
+
 export default function handler(req, res) {
-    res.status(200).setHeader('Content-Type', 'text/event-stream')
-      .setHeader('Cache-Control', 'no-cache')
-      .setHeader('Connection', 'keep-alive')
-      .write('\n');
-  
-    // 将消息发送到客户端
-    const intervalId = setInterval(() => {
-      res.write(`data: ${JSON.stringify({ message: "Hello from the server!" })}\n\n`);
-    }, 1000);
-  
-    // 当客户端关闭连接时清理
-    req.on('close', () => {
-      clearInterval(intervalId);
-      res.end();
-    });
-  }
-  ```
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+  res.write('\n');
+
+  // Kafka consumer messages
+  consumer.run({
+    eachMessage: async ({ topic, partition, message }) => {
+      const content = JSON.parse(message.value.toString());
+      res.write(`data: ${JSON.stringify(content)}\n\n`);
+    },
+  });
+
+  req.on('close', () => {
+    // Handle client disconnect
+    res.end();
+  });
+}
+```
 
 // components/ChatBox/Message.tsx
 ```
