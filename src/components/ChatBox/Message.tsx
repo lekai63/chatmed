@@ -12,7 +12,7 @@ const Message = ({ isUser, text }) => {
   ) : (
     <>
       <div className="message-content">{text}</div>
-      <div className="icon-container mr-2"><Mask theme="outline" size="24" fill="#ffffff"/></div> {/* AI icon on the right */}
+      <div className="icon-container mr-2"><Mask theme="outline" size="24" fill="#4A5568"/></div> {/* AI icon on the right */}
     </>
   )}
 </div>
