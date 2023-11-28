@@ -62,16 +62,16 @@ const ChatBox = () => {
         ...prevMessages,
         { id: generateUniqueId(), text: newMessage, isUser: true, timestamp: new Date() }
       ]);
-
+  
       aiThinkingMessageId = generateUniqueId();
       setMessages(prevMessages => [
         ...prevMessages,
         { id: aiThinkingMessageId, text: "AI is thinking...", isUser: false, timestamp: new Date() }
       ]);
-
+  
       try {
         await axios.post('/api/send-message', { message: newMessage, userId: userId });
-        setNewMessage(''); // Clear the input box after sending the message
+        setNewMessage(''); // 清空输入框
       } catch (error) {
         console.error('Error sending message:', error);
       }

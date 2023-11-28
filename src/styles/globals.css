@@ -44,6 +44,7 @@ body {
 
   .chat-message-list {
     @apply overflow-y-auto flex-1 w-full p-4;
+    padding-bottom: 4rem; /* 增加底部内边距 */
     display: flex;
     flex-direction: column;
     align-items: flex-end; /* 使得消息在右边对齐 */

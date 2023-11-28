@@ -16,17 +16,18 @@ const kafka = new Kafka({
 });
 const consumer = kafka.consumer({ groupId: consumerGroupId });
 
-// Connecting the Kafka consumer
-consumer.connect().then(() => {
-  console.log('Kafka consumer connected'); // Kafka消费者连接成功
+ // Connecting the Kafka consumer
+ consumer.connect().then(() => {
+  console.log('Kafka consumer connected');
 }).catch(error => {
-  console.error('Error connecting Kafka consumer:', error); // Kafka消费者连接错误
+  console.error('Error connecting Kafka consumer:', error);
 });
 
-consumer.subscribe({ topic: 'chatmed', fromBeginning: true }).then(() => {
-  console.log('Kafka consumer subscribed to topic chatmed'); // Kafka消费者订阅主题成功
+ // 修改此处以订阅建立连接后的消息
+ consumer.subscribe({ topic: 'chatmed', fromBeginning: false }).then(() => {
+  console.log('Kafka consumer subscribed to topic chatmed');
 }).catch(error => {
-  console.error('Error subscribing to topic:', error); // Kafka消费者订阅主题错误
+  console.error('Error subscribing to topic:', error);
 });
 // 在nextjs中使用SSE 需要注意 客户端无法接收到数据，需设置'no-cache, no-transform'，因为nextjs默认会压缩内容。
   res.writeHead(200, {
