@@ -28,10 +28,12 @@ consumer.subscribe({ topic: 'chatmed', fromBeginning: true }).then(() => {
 }).catch(error => {
   console.error('Error subscribing to topic:', error); // Kafka消费者订阅主题错误
 });
-
+// 在nextjs中使用SSE 需要注意 客户端无法接收到数据，需设置'no-cache, no-transform'，因为nextjs默认会压缩内容。
   res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
+    'Content-Type': 'text/event-stream;charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'X-Accel-Buffering': 'no',
+    'Cache-Control': 'no-cache, no-transform',
     'Connection': 'keep-alive',
   });
   res.write('\n');
@@ -44,10 +46,11 @@ consumer.subscribe({ topic: 'chatmed', fromBeginning: true }).then(() => {
       
       // 日志转发前的消息内容
       console.log(`Forwarding message to client: ${JSON.stringify(content)}`);
-  
-      res.write(`data: ${JSON.stringify(content)}\n\n`);
-  
-      // 可以在此处添加更多的日志，如果有额外的处理逻辑
+
+      // 客户端无法收到data中的换行符，解决办法是对于有空格符的消息添加自定义事件，客户端监听进行空格符的添加
+      res.write(`event: customMessage\ndata: ${JSON.stringify(content)}\n\n`);
+
+      // res.write(`data: ${JSON.stringify(content)}\n\n`);
     },
   });
  
