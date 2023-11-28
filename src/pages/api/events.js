@@ -39,7 +39,7 @@ consumer.subscribe({ topic: 'chatmed', fromBeginning: true }).then(() => {
   // Kafka consumer messages
   consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
-      console.log(`Received message from Kafka topic: ${topic}, partition: ${partition}, message: ${message.value.toString()}`);
+      
       const content = JSON.parse(message.value.toString());
       
       // 日志转发前的消息内容

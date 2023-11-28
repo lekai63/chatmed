@@ -10,7 +10,6 @@ const Home = () => {
       userId = uuidv4();
       localStorage.setItem('userId', userId);
     }
-    console.log("userId in index.tsx is:",userId);
   }, []);
   return (
     <div className="chat-container relative">

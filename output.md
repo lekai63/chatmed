@@ -47,7 +47,6 @@ const Home = () => {
       userId = uuidv4();
       localStorage.setItem('userId', userId);
     }
-    console.log("userId in index.tsx is:",userId);
   }, []);
   return (
     <div className="chat-container relative">
@@ -148,7 +147,6 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
       const { message } = req.body;
-      console.log("Received message:", message); // 日志接收到的消息
 
       // 配置 OpenAI
       const openai = new OpenAI({
@@ -162,7 +160,6 @@ export default async function handler(req, res) {
       // 设置 Assistant ID
       const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
-      console.log("Sending message to OpenAI:", message); // 日志发送给OpenAI的消息
       const run = await openai.beta.threads.createAndRun({
         assistant_id: assistantId,
         thread: {
@@ -180,7 +177,6 @@ export default async function handler(req, res) {
 
       if (threadMessages?.data?.length > 0) {
         const latestMessage = threadMessages.data[0];
-        console.log("Received response from OpenAI:", latestMessage.content[0].text.value); // 日志从OpenAI接收到的响应
 
        // After getting the AI response
        await producer.send({
@@ -209,8 +205,6 @@ const { Kafka } = require('kafkajs');
 
 // Reading Kafka broker address from environment variables
 const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'ip.quarkmed.com:9094';
-
-
 
 export default async function handler(req, res) {
 
@@ -248,7 +242,7 @@ consumer.subscribe({ topic: 'chatmed', fromBeginning: true }).then(() => {
   // Kafka consumer messages
   consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
-      console.log(`Received message from Kafka topic: ${topic}, partition: ${partition}, message: ${message.value.toString()}`);
+      
       const content = JSON.parse(message.value.toString());
       
       // 日志转发前的消息内容
