@@ -7,6 +7,7 @@ import axios from 'axios';
 // import { v4 as uuidv4 } from 'uuid'; // 导入 uuid 库
 
 let messageIdCounter = 0;
+let aiThinkingMessageId: number | null = null; // 新增变量来存储临时 AI 消息的 ID
 
 const generateUniqueId = () => {
   return messageIdCounter++; // 返回当前值并递增计数器
@@ -42,11 +43,23 @@ const ChatBox = () => {
       }
     });
 
-      // 处理自定义事件
-  eventSource.addEventListener('custom-event', (event) => {
-    // 处理带有空格符的消息
-    const data = JSON.parse(event.data);
-    // ... 添加自定义逻辑 ...
+      // 处理自定义事件  修改 SSE 监听器
+  eventSource.addEventListener('customMessage', (event) => {
+    console.log("Received SSE data:", event.data);
+    try {
+      const data = JSON.parse(event.data);
+      console.log("Parsed SSE data:", data);
+
+      // 更新消息列表，替换临时 AI 消息
+      setMessages(prevMessages => prevMessages.map(msg => 
+        msg.id === aiThinkingMessageId ? { ...msg, text: data.aiMessage, isUser: false, timestamp: new Date() } : msg
+      ));
+
+      // 清除 AI 思考消息的 ID
+      aiThinkingMessageId = null;
+    } catch (error) {
+      console.error('Error parsing SSE data:', error);
+    }
   });
 
     eventSource.onerror = (error) => {
@@ -61,8 +74,31 @@ const ChatBox = () => {
 
   const handleSendMessage = async () => {
     const userId = localStorage.getItem('userId');
-    console.log(`Sending message: ${newMessage}, userId: ${userId}`);
     if (newMessage.trim()) {
+       // 在发送请求前立即显示用户消息
+    setMessages(prevMessages => [
+      ...prevMessages,
+      { id: generateUniqueId(), text: newMessage, isUser: true, timestamp: new Date() }
+    ]);
+
+    // 为 AI 思考添加临时消息
+  let countdown = 30;
+  const aiThinkingMessageId = generateUniqueId();
+  setMessages(prevMessages => [
+    ...prevMessages,
+    { id: aiThinkingMessageId, text: `我正在思考中，${countdown}s`, isUser: false, timestamp: new Date() }
+  ]);
+
+  const interval = setInterval(() => {
+    countdown -= 1;
+    setMessages(prevMessages => prevMessages.map(msg => 
+      msg.id === aiThinkingMessageId ? { ...msg, text: `我正在思考中，${countdown}s` } : msg
+    ));
+    if (countdown <= 0) clearInterval(interval);
+  }, 1000);
+
+
+  // 发送请求
       try {
         await axios.post('/api/send-message', { message: newMessage, userId: userId });
         setNewMessage('');
