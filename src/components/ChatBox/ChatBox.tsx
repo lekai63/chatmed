@@ -6,9 +6,8 @@ import { ChatContext } from '../../contexts/ChatContext';
 import axios from 'axios';
 
 let messageIdCounter = 0;
-let aiThinkingMessageId= 0;
+let aiThinkingMessageId = 0;
 const generateUniqueId = () => messageIdCounter++;
-
 
 const ChatBox = () => {
   const { messages, setMessages } = useContext(ChatContext);
@@ -31,13 +30,11 @@ const ChatBox = () => {
         console.log("Parsed SSE data:", data);
 
         if (aiThinkingMessageId !== 0) {
-          // Replace the AI thinking message with the actual AI message
-          setMessages(prevMessages => prevMessages.map(msg => 
+          setMessages(prevMessages => prevMessages.map(msg =>
             msg.id === aiThinkingMessageId ? { ...msg, text: data.aiMessage, isUser: false, timestamp: new Date() } : msg
           ));
-          aiThinkingMessageId = 0;
+          aiThinkingMessageId = 0; // Reset the aiThinkingMessageId
         } else {
-          // Just add the AI message
           setMessages(prevMessages => [
             ...prevMessages,
             { id: generateUniqueId(), text: data.aiMessage, isUser: false, timestamp: new Date() }
@@ -66,7 +63,6 @@ const ChatBox = () => {
         { id: generateUniqueId(), text: newMessage, isUser: true, timestamp: new Date() }
       ]);
 
-      // Add a temporary AI thinking message
       aiThinkingMessageId = generateUniqueId();
       setMessages(prevMessages => [
         ...prevMessages,
@@ -75,7 +71,7 @@ const ChatBox = () => {
 
       try {
         await axios.post('/api/send-message', { message: newMessage, userId: userId });
-        setNewMessage('');
+        setNewMessage(''); // Clear the input box after sending the message
       } catch (error) {
         console.error('Error sending message:', error);
       }
@@ -104,6 +100,5 @@ const ChatBox = () => {
     </div>
   );
 };
-
 
 export default ChatBox;

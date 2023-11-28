@@ -23,24 +23,20 @@ index.tsx作为聊天应用的入口点。
 _app.tsx和_document.tsx用于自定义应用的布局和设置。
 
 
-### 代码逻辑解释
-当 events.js 收到 Kafka 服务发送的信息时，数据的处理流程是这样的：
+问题 1：避免接收重复的 AI 消息
+要避免在新的浏览器会话中接收到之前所有的 AI 消息，可以通过以下步骤实现：
 
-接收 Kafka 消息:
+存储消息的时间戳：在 Kafka 中发布消息时，附加一个时间戳字段。这个时间戳表示消息被发送到 Kafka 的时间。
 
-events.js 中的 Kafka 消费者被设置为订阅 chatmed 主题。
-一旦有消息从 Kafka 服务到达，Kafka 消费者的 eachMessage 回调函数被触发。
-消息内容是以 message.value 的形式接收的，它是一个包含 JSON 字符串的 Buffer。
-解析 Kafka 消息:
+客户端不需要存储最后一条消息的时间戳，在建立SSE连接后，kafka消费者拉取建立连接后的消息即可。
 
-接收到的 Kafka 消息 (message.value) 是一个 Buffer。首先，需要将其转换为字符串，然后解析为 JSON 对象。这是通过 JSON.parse(message.value.toString()) 完成的。
-解析后的内容会包含用户消息 (userMessage) 和 AI 响应 (aiMessage)。
-处理和转发消息:
+问题 2：发送消息后未清空 InputBox
+在 ChatBox 组件的 handleSendMessage 函数中，消息发送成功后，需要确保调用 setNewMessage('') 来清空输入框。如果这一行代码已经存在但不起作用，可能是由于状态更新异步导致的。可以尝试使用 React 的 useEffect 钩子来监视 newMessage 的变化，并在变化后清空输入框。
 
-服务器通过 Server-Sent Events (SSE) 向客户端发送消息。为了实现这一点，events.js 中使用了 Node.js 的原生 res.write 方法。
-使用 res.write，消息被格式化为 SSE 格式并发送给客户端。SSE 消息通常以 "data: " 开头，后面跟随要发送的数据，每条消息以两个换行符结束 (\n\n)。
-客户端接收和处理 SSE 消息:
+问题 3：聊天记录排序
+要按时间顺序排列消息，可以在消息对象中包含一个时间戳字段。然后，在渲染 MessageList 组件时，根据这个时间戳对消息数组进行排序。确保在添加新消息到状态时也遵循这个排序规则。
 
-在 ChatBox.tsx 组件中，EventSource 对象用于监听服务器发来的 SSE 消息。
-当 EventSource 对象接收到消息时，onmessage 事件处理器被触发。这个处理器解析接收到的 JSON 数据，并根据其内容更新聊天界面。
-解析后的数据包含 AI 的回复和用户的原始消息。这些数据被用来更新 React 的状态 (messages state)，从而更新 UI 上的聊天消息列表。
+问题 4：AI 消息超出显示区域
+为了防止 AI 消息超出并被输入框遮挡，需要调整 MessageList 组件的 CSS 样式。可以通过为消息列表添加一个底部内边距（padding-bottom），这个内边距至少与输入框的高度相同。这样，即使消息列表满了，最后一条消息也不会被输入框遮挡。
+
+根据这些解决方案，如果您同意，我可以进一步提供修改后的代码示例。

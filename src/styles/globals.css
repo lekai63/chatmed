@@ -61,7 +61,7 @@ body {
   }
 
   .user-message {
-    @apply bg-green-700 text-white self-end justify-end rounded-lg;
+    @apply bg-[#D4EDDA] text-gray-800 self-end justify-end rounded-lg; 
     @apply flex-row justify-start items-center; /* 图标在左，内容在右 */
   }
   
