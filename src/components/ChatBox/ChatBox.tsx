@@ -8,42 +8,38 @@ import axios from 'axios';
 const ChatBox = () => {
   const { messages, setMessages } = useContext(ChatContext);
   const [newMessage, setNewMessage] = useState('');
-  const [eventSource, setEventSource] = useState<EventSource | null>(null);
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
+    if (!userId) {
+      console.error("No userId found in localStorage");
+      return;
+    }
     console.log(`Establishing SSE connection with userId: ${userId}`);
-    const newEventSource = new EventSource(`/api/events?userId=${userId}`);
+    const eventSource = new EventSource(`/api/events?userId=${userId}`);
 
-    newEventSource.onmessage = (event) => {
+    eventSource.onmessage = (event) => {
       console.log("Received SSE data:", event.data);
-      const data = JSON.parse(event.data);
-      console.log("Parsed SSE data:", data);
-      if (data && data.aiMessage && data.userMessage) {
-        const now = new Date();
+      try {
+        const data = JSON.parse(event.data);
+        console.log("Parsed SSE data:", data);
         setMessages(prevMessages => [
           ...prevMessages,
-          { id: prevMessages.length + 1, text: data.userMessage, isUser: true, timestamp: now },
-          { id: prevMessages.length + 2, text: data.aiMessage, isUser: false, timestamp: now }
+          { text: data.userMessage, isUser: true },
+          { text: data.aiMessage, isUser: false }
         ]);
-      } else {
-        console.error('Unexpected message format:', data);
+      } catch (error) {
+        console.error('Error parsing SSE data:', error);
       }
     };
 
-    newEventSource.onerror = (error) => {
+    eventSource.onerror = (error) => {
       console.error('EventSource failed:', error);
-      if (newEventSource.readyState === EventSource.CLOSED) {
-        console.log("Attempting to reconnect...");
-        setTimeout(() => connectEventSource(userId), 3000);
-      }
     };
 
-    setEventSource(newEventSource);
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
+      eventSource.close();
+      console.log("EventSource closed");
     };
   }, [setMessages]);
 
