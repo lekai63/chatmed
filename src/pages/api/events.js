@@ -3,8 +3,6 @@ const { Kafka } = require('kafkajs');
 // Reading Kafka broker address from environment variables
 const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'ip.quarkmed.com:9094';
 
-
-
 export default async function handler(req, res) {
 
   const userId = req.query.userId; // 从请求中获取用户ID
