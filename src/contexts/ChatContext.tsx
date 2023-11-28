@@ -21,8 +21,11 @@ export const ChatContext = createContext<ChatContextType>({
   setMessages: () => {}, // 默认空实现
 });
 
+interface ChatProviderProps {
+  children: React.ReactNode; // 明确声明 children 的类型
+}
 // Context提供者组件
-const ChatProvider: React.FC = ({ children }) => {
+const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [messages, setMessages] = useState<MessageType[]>([]);
 
   return (

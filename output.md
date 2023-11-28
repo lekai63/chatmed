@@ -36,10 +36,19 @@
 // pages/index.tsx
 ```
 // index.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import ChatBox from '../components/ChatBox/ChatBox'; // 确保这个路径是正确的
+import { v4 as uuidv4 } from 'uuid';
 
 const Home = () => {
+  useEffect(() => {
+    let userId = localStorage.getItem('userId');
+    if (!userId) {
+      userId = uuidv4();
+      localStorage.setItem('userId', userId);
+    }
+    console.log("userId in index.tsx is:",userId);
+  }, []);
   return (
     <div className="chat-container relative">
       <ChatBox />
@@ -98,7 +107,7 @@ import OpenAI from 'openai';
 const { Kafka } = require('kafkajs');
 
 // Reading Kafka broker address from environment variables
-const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'localhost:9092';
+const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'ip.quarkmed.com:9094';
 // Kafka setup
 const kafka = new Kafka({
   clientId: 'chat-app',
@@ -139,7 +148,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
       const { message } = req.body;
-      console.log("req.body:", message);
+      console.log("Received message:", message); // 日志接收到的消息
 
       // 配置 OpenAI
       const openai = new OpenAI({
@@ -153,6 +162,7 @@ export default async function handler(req, res) {
       // 设置 Assistant ID
       const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
+      console.log("Sending message to OpenAI:", message); // 日志发送给OpenAI的消息
       const run = await openai.beta.threads.createAndRun({
         assistant_id: assistantId,
         thread: {
@@ -170,11 +180,11 @@ export default async function handler(req, res) {
 
       if (threadMessages?.data?.length > 0) {
         const latestMessage = threadMessages.data[0];
-        console.log("latestMessage.content[0]:",latestMessage.content[0])
+        console.log("Received response from OpenAI:", latestMessage.content[0].text.value); // 日志从OpenAI接收到的响应
 
        // After getting the AI response
        await producer.send({
-          topic: 'chat-messages',
+          topic: 'chatmed',
           messages: [{ value: JSON.stringify({ userMessage: message, aiMessage: latestMessage.content[0].text.value }) }],
           });
 
@@ -198,20 +208,36 @@ export default async function handler(req, res) {
 const { Kafka } = require('kafkajs');
 
 // Reading Kafka broker address from environment variables
-const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'localhost:9092';
+const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'ip.quarkmed.com:9094';
 
-// Kafka setup
+
+
+export default async function handler(req, res) {
+
+  const userId = req.query.userId; // 从请求中获取用户ID
+  console.log(`Received userId: ${userId}`); // 日志用户ID
+  const consumerGroupId = `chat-app-group-${userId}`; // 使用用户ID作为消费者组ID的一部分
+
+  // Kafka setup
 const kafka = new Kafka({
   clientId: 'chat-app',
   brokers: [kafkaBrokerAddress]
 });
-const consumer = kafka.consumer({ groupId: 'chat-group' });
+const consumer = kafka.consumer({ groupId: consumerGroupId });
 
 // Connecting the Kafka consumer
-consumer.connect();
-consumer.subscribe({ topic: 'chat-messages', fromBeginning: true });
+consumer.connect().then(() => {
+  console.log('Kafka consumer connected'); // Kafka消费者连接成功
+}).catch(error => {
+  console.error('Error connecting Kafka consumer:', error); // Kafka消费者连接错误
+});
 
-export default function handler(req, res) {
+consumer.subscribe({ topic: 'chatmed', fromBeginning: true }).then(() => {
+  console.log('Kafka consumer subscribed to topic chatmed'); // Kafka消费者订阅主题成功
+}).catch(error => {
+  console.error('Error subscribing to topic:', error); // Kafka消费者订阅主题错误
+});
+
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -222,11 +248,18 @@ export default function handler(req, res) {
   // Kafka consumer messages
   consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
+      console.log(`Received message from Kafka topic: ${topic}, partition: ${partition}, message: ${message.value.toString()}`);
       const content = JSON.parse(message.value.toString());
+      
+      // 日志转发前的消息内容
+      console.log(`Forwarding message to client: ${JSON.stringify(content)}`);
+  
       res.write(`data: ${JSON.stringify(content)}\n\n`);
+  
+      // 可以在此处添加更多的日志，如果有额外的处理逻辑
     },
   });
-
+ 
   req.on('close', () => {
     // Handle client disconnect
     res.end();
@@ -329,34 +362,63 @@ import axios from 'axios'; // 引入 axios 用于发送消息
 const ChatBox = () => {
   const { messages, setMessages } = useContext(ChatContext);
   const [newMessage, setNewMessage] = useState('');
+ // 明确 eventSource 的类型为 EventSource | null
+ const [eventSource, setEventSource] = useState<EventSource | null>(null);
 
   useEffect(() => {
-    // 初始化 SSE 连接
-    const eventSource = new EventSource('/api/events');
+    const userId = localStorage.getItem('userId');
+    console.log(`Establishing SSE connection with userId: ${userId}`);
+    connectEventSource(userId);
 
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      // 假设服务器返回的数据结构是 { text: string, isUser: boolean }
-      setMessages(prevMessages => [...prevMessages, data]);
-    };
-
-    eventSource.onerror = (error) => {
-      console.error('EventSource failed:', error);
-      // 可以在这里添加重连逻辑
-      eventSource.close();
-    };
-
-    // 清理函数
     return () => {
-      eventSource.close();
+      if (eventSource) {
+        eventSource.close();
+      }
     };
-  }, [setMessages]);
+  }, [setMessages]); 
+
+  const connectEventSource = (userId) => {
+    const newEventSource = new EventSource(`/api/events?userId=${userId}`);
+
+    newEventSource.onmessage = (event) => {
+      console.log("Received SSE data:", event.data); // 打印从 SSE 接收到的原始数据
+      const data = JSON.parse(event.data);
+    
+      if (data && data.aiMessage && data.userMessage) {
+        console.log("Parsed SSE data:", data);
+    
+        // 使用当前时间作为消息的时间戳
+        const now = new Date();
+    
+        // 更新状态，添加新消息
+        setMessages(prevMessages => [
+          ...prevMessages,
+          { id: prevMessages.length + 1, text: data.userMessage, isUser: true, timestamp: now },
+          { id: prevMessages.length + 2, text: data.aiMessage, isUser: false, timestamp: now }
+        ]);
+      } else {
+        console.error('Unexpected message format:', data);
+      }
+    };
+
+    newEventSource.onerror = (error) => {
+      console.error('EventSource failed:', error);
+      if (newEventSource.readyState === EventSource.CLOSED) {
+        console.log("Attempting to reconnect...");
+        setTimeout(() => connectEventSource(userId), 3000); // 3秒后尝试重新连接
+      }
+    };
+    setEventSource(newEventSource);
+  };
 
   const handleSendMessage = async () => {
+    const userId = localStorage.getItem('userId'); // 获取用户ID
+    console.log(`Sending message: ${newMessage}, userId: ${userId}`); // 日志发送的消息和用户ID
+    const eventSource = new EventSource(`/api/events?userId=${userId}`);
     if (newMessage.trim()) {
       // 发送消息到服务器
       try {
-        await axios.post('/api/send-message', { message: newMessage });
+        await axios.post('/api/send-message', { message: newMessage, userId: userId });
         setNewMessage('');
       } catch (error) {
         console.error('Error sending message:', error);
@@ -461,8 +523,11 @@ export const ChatContext = createContext<ChatContextType>({
   setMessages: () => {}, // 默认空实现
 });
 
+interface ChatProviderProps {
+  children: React.ReactNode; // 明确声明 children 的类型
+}
 // Context提供者组件
-const ChatProvider: React.FC = ({ children }) => {
+const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [messages, setMessages] = useState<MessageType[]>([]);
 
   return (
