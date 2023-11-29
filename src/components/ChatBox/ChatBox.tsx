@@ -12,8 +12,12 @@ const ChatBox = () => {
   const { messages, setMessages } = useContext(ChatContext);
   const [newMessage, setNewMessage] = useState('');
   const aiThinkingTimer = useRef<number | null>(null);
-
   const aiThinkingTimeLimit = 30; // 30 seconds countdown
+  const threadId = localStorage.getItem('threadId');
+  if (!threadId) {
+console.error("No threadId found in localStorage");
+return;
+}
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
@@ -55,12 +59,6 @@ const ChatBox = () => {
         // 从 localStorage 获取 threadId
    
   const handleWindowClose = async () => {
-
-    const threadId = localStorage.getItem('threadId');
-    if (!threadId) {
-  console.error("No threadId found in localStorage");
-  return;
-}
     
       // 发送请求结束 thread
       await axios.post('/api/end-thread', { threadId });
@@ -113,7 +111,7 @@ const ChatBox = () => {
     }, 1000);
 
       try {
-        await axios.post('/api/send-message', { message: newMessage, userId: userId, aiThinkingMessageId: aiThinkingMessageId });
+        await axios.post('/api/send-message', { message: newMessage, userId: userId, aiThinkingMessageId: aiThinkingMessageId,threadId: threadId });
       } catch (error) {
         console.error('Error sending message:', error);
       }

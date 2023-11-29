@@ -58,7 +58,7 @@ function waitForResponse(openai, threadId, runId) {
 export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
-      const { message, aiThinkingMessageId, userId } = req.body;
+      const { message, aiThinkingMessageId, userId, threadId } = req.body;
 
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
@@ -71,7 +71,6 @@ export default async function handler(req, res) {
       const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
   // 检查是否有提供 thread ID，如果没有则创建新的线程
-  let threadId = req.body.threadId;
   if (!threadId) {
     // 调用 createThread 函数来创建新的线程
     threadId = await createThread(openai);
@@ -90,7 +89,9 @@ export default async function handler(req, res) {
         await producer.send({
           topic: 'chatmed',
           messages: [{
+            key: userId.toString(), // 使用userId作为消息的key
             value: JSON.stringify({
+              userId,
               userMessage: message,
               aiMessage: latestMessage.content[0].text.value,
               aiThinkingMessageId

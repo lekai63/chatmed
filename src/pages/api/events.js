@@ -55,7 +55,11 @@ const consumer = kafka.consumer({
       console.log(`Forwarding message to client: ${JSON.stringify(content)}`);
 
       // 客户端无法收到data中的换行符，解决办法是对于有空格符的消息添加自定义事件，客户端监听进行空格符的添加
-      res.write(`event: customMessage\ndata: ${JSON.stringify(content)}\n\n`);
+       // 确保只处理该userId的消息
+       if (content.userId === userId) {
+        console.log(`Forwarding message to client: ${JSON.stringify(content)}`);
+        res.write(`event: customMessage\ndata: ${JSON.stringify(content)}\n\n`);
+      }
 
       // 手动提交offset
     // await consumer.commitOffsets([
