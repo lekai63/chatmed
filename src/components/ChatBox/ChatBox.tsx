@@ -64,21 +64,27 @@ const ChatBox = () => {
 
   window.addEventListener('beforeunload', handleWindowClose);
 
-  // 清理函数
-  return () => {
-    eventSource.close();
-    console.log("EventSource closed");
-    window.removeEventListener('beforeunload', handleWindowClose);
+ // 在组件卸载时执行的清理操作
+ return () => {
+  window.removeEventListener('beforeunload', handleWindowClose);
+  eventSource.close();
+  console.log("EventSource closed");
 
-    // 发送请求结束 thread
-    const threadId = sessionStorage.getItem('threadId');
-    if (threadId) {
-      axios.post('/api/end-thread', { threadId })
-        .then(() => console.log("Thread ended successfully"))
-        .catch(error => console.error("Error ending thread:", error));
+  // 结束线程
+  const endThread = async () => {
+    try {
+      const threadId = sessionStorage.getItem('threadId');
+      if (threadId) {
+        await axios.post('/api/end-thread', { threadId });
+        console.log("Thread ended successfully");
+      }
+    } catch (error) {
+      console.error("Error ending thread:", error);
     }
   };
-  }, [userId, threadId, setMessages]);
+  endThread();
+};
+}, [userId, threadId, setMessages]);
 
   const handleSendMessage = async () => {
     const userId = sessionStorage.getItem('userId');

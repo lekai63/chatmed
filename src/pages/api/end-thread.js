@@ -16,10 +16,9 @@ export default async function handler(req, res) {
     });
 
     try {
+      console.log("Attempting to end thread with ID:", threadId);
       // 调用 OpenAI API 结束 thread
       const response = await openai.beta.threads.del(threadId);
-      console.log("thread del res:",response);
-
       res.status(200).json({ success: true, message: 'Thread ended successfully' });
     } catch (error) {
       console.error('Error ending thread:', error);
