@@ -12,7 +12,7 @@ const MessageList = ({ messages }) => {
   }, [messages]);
 
   return (
-    <div className="chat-message-list flex-1 overflow-y-auto pb-12">
+    <div className="chat-message-list flex-1 overflow-y-auto pb-16">
       {messages
         .sort((a, b) => a.timestamp - b.timestamp) // 根据时间戳排序
         .map((message, index) => (
