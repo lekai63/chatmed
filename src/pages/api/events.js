@@ -14,7 +14,13 @@ const kafka = new Kafka({
   clientId: 'chat-app',
   brokers: [kafkaBrokerAddress]
 });
-const consumer = kafka.consumer({ groupId: consumerGroupId });
+const consumer = kafka.consumer({ 
+  groupId: consumerGroupId,
+  enableAutoCommit: true, // 自动提交
+  autoOffsetReset: 'latest', // 或者 'earliest'，根据需求选择
+  fetchMaxBytes: 512000, // 例如，0.5MB
+  maxPartitionFetchBytes: 512000 // 例如，1MB
+});
 
  // Connecting the Kafka consumer
  consumer.connect().then(() => {
@@ -51,7 +57,11 @@ const consumer = kafka.consumer({ groupId: consumerGroupId });
       // 客户端无法收到data中的换行符，解决办法是对于有空格符的消息添加自定义事件，客户端监听进行空格符的添加
       res.write(`event: customMessage\ndata: ${JSON.stringify(content)}\n\n`);
 
-      // res.write(`data: ${JSON.stringify(content)}\n\n`);
+      // 手动提交offset
+    // await consumer.commitOffsets([
+    //   { topic, partition, offset: (message.offset + 1).toString() }
+    // ]);
+  
     },
   });
  

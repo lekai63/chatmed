@@ -2,7 +2,8 @@ import OpenAI from 'openai';
 const { Kafka } = require('kafkajs');
 
 // Reading Kafka broker address from environment variables
-const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'ip.quarkmed.com:9094';
+const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'deeplx.xxhzjk.com:9094';
+
 // Kafka setup
 const kafka = new Kafka({
   clientId: 'chat-app',
@@ -13,15 +14,12 @@ const producer = kafka.producer();
 // Connect the Kafka producer
 producer.connect();
 
-// 创建一个等待函数
+// Function to wait for OpenAI response
 function waitForResponse(openai, threadId, runId) {
   return new Promise((resolve, reject) => {
     const checkStatus = async () => {
       try {
-        const runStatus = await openai.beta.threads.runs.retrieve(
-          threadId,
-          runId,
-        );
+        const runStatus = await openai.beta.threads.runs.retrieve(threadId, runId);
 
         if (runStatus.status !== 'queued' && runStatus.status !== 'in_progress') {
           resolve(runStatus);
@@ -38,13 +36,12 @@ function waitForResponse(openai, threadId, runId) {
   });
 }
 
-
 export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
-      const { message } = req.body;
+      const { message, aiThinkingMessageId } = req.body;
 
-      // 配置 OpenAI
+      // Configure OpenAI
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
         baseURL: "https://oai.hconeai.com/v1",
@@ -53,32 +50,34 @@ export default async function handler(req, res) {
         },
       });
 
-      // 设置 Assistant ID
+      // Set Assistant ID
       const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
       const run = await openai.beta.threads.createAndRun({
         assistant_id: assistantId,
         thread: {
-          messages: [
-            { role: "user", content: message },
-          ],
+          messages: [{ role: "user", content: message }],
         },
       });
 
       const threadId = run.thread_id;
-
       const completedRun = await waitForResponse(openai, threadId, run.id);
- 
       const threadMessages = await openai.beta.threads.messages.list(threadId);
 
       if (threadMessages?.data?.length > 0) {
         const latestMessage = threadMessages.data[0];
 
-       // After getting the AI response
-       await producer.send({
+        // After getting the AI response, send it to Kafka
+        await producer.send({
           topic: 'chatmed',
-          messages: [{ value: JSON.stringify({ userMessage: message, aiMessage: latestMessage.content[0].text.value }) }],
-          });
+          messages: [{
+            value: JSON.stringify({
+              userMessage: message,
+              aiMessage: latestMessage.content[0].text.value,
+              aiThinkingMessageId
+            })
+          }],
+        });
 
         res.status(200).json({ success: true });
       } else {
