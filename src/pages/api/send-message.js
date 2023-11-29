@@ -94,7 +94,8 @@ export default async function handler(req, res) {
               userId,
               userMessage: message,
               aiMessage: latestMessage.content[0].text.value,
-              aiThinkingMessageId
+              aiThinkingMessageId,
+              threadId 
             })
           }],
         });
