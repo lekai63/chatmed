@@ -70,19 +70,6 @@ const ChatBox = () => {
   eventSource.close();
   console.log("EventSource closed");
 
-  // 结束线程
-  const endThread = async () => {
-    try {
-      const threadId = sessionStorage.getItem('threadId');
-      if (threadId) {
-        await axios.post('/api/end-thread', { threadId });
-        console.log("Thread ended successfully");
-      }
-    } catch (error) {
-      console.error("Error ending thread:", error);
-    }
-  };
-  endThread();
 };
 }, [userId, threadId, setMessages]);
 
