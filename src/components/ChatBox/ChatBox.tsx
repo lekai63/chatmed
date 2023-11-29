@@ -31,13 +31,16 @@ const ChatBox = () => {
         const data = JSON.parse(event.data);
     
         if (data.aiThinkingMessageId) {
-          setMessages(prevMessages => prevMessages.map(msg =>
-            msg.id === data.aiThinkingMessageId ? { ...msg, text: data.aiMessage, isUser: false, timestamp: new Date() } : msg
-          ));
+
           if (aiThinkingTimer.current !== null) {
             window.clearInterval(aiThinkingTimer.current);
         aiThinkingTimer.current = null;
           }
+          
+          setMessages(prevMessages => prevMessages.map(msg =>
+            msg.id === data.aiThinkingMessageId ? { ...msg, text: data.aiMessage, isUser: false, timestamp: new Date() } : msg
+          ));
+      
         }
       } catch (error) {
         console.error('Error parsing SSE data:', error);
@@ -75,11 +78,19 @@ const ChatBox = () => {
     ]);
 
     let countdown = aiThinkingTimeLimit;
-    aiThinkingTimer.current =  window.setTimeout(() => {
+    aiThinkingTimer.current =  window.setInterval(() => {
       countdown--;
       setMessages(prevMessages => prevMessages.map(msg =>
         msg.id === aiThinkingMessageId ? { ...msg, text: `AI is thinking... ${countdown}` } : msg
       ));
+
+      if (countdown <= 0) {
+        if (aiThinkingTimer.current !== null) {
+          window.clearInterval(aiThinkingTimer.current);
+      aiThinkingTimer.current = null;
+        }
+        setMessages(prevMessages => prevMessages.filter(msg => msg.id !== aiThinkingMessageId));
+      }
     }, 1000);
 
       try {
