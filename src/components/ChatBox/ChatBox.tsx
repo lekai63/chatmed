@@ -13,19 +13,20 @@ const ChatBox = () => {
   const [newMessage, setNewMessage] = useState('');
   const aiThinkingTimer = useRef<number | null>(null);
   const aiThinkingTimeLimit = 30; // 30 seconds countdown
-  const threadId = localStorage.getItem('threadId');
-  if (!threadId) {
-console.error("No threadId found in localStorage");
-return;
-}
+  const threadId = sessionStorage.getItem('threadId');
+  const userId = sessionStorage.getItem('userId');
+
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
     if (!userId) {
-      console.error("No userId found in localStorage");
+      console.error("No userId found in sessionStorage");
       return;
     }
 
+    if (!threadId) {
+      console.error("No threadId found in sessionStorage");
+      return;
+    }
     console.log(`Establishing SSE connection with userId: ${userId}`);
     const eventSource = new EventSource(`/api/events?userId=${userId}`);
 
@@ -55,27 +56,32 @@ return;
       console.error('EventSource failed:', error);
     };
 
-     // 处理网页关闭
-        // 从 localStorage 获取 threadId
-   
-  const handleWindowClose = async () => {
-    
-      // 发送请求结束 thread
-      await axios.post('/api/end-thread', { threadId });
-    
-  };
+     // 处理网页关闭   
+     const handleWindowClose = () => {
+      console.log("Window is closing");
+      // 这里可以放置其他需要在窗口关闭前执行的逻辑
+    };
 
   window.addEventListener('beforeunload', handleWindowClose);
 
-    return () => {
-      eventSource.close();
-      console.log("EventSource closed");
-      window.removeEventListener('beforeunload', handleWindowClose);
-    };
-  }, [setMessages]);
+  // 清理函数
+  return () => {
+    eventSource.close();
+    console.log("EventSource closed");
+    window.removeEventListener('beforeunload', handleWindowClose);
+
+    // 发送请求结束 thread
+    const threadId = sessionStorage.getItem('threadId');
+    if (threadId) {
+      axios.post('/api/end-thread', { threadId })
+        .then(() => console.log("Thread ended successfully"))
+        .catch(error => console.error("Error ending thread:", error));
+    }
+  };
+  }, [userId, threadId, setMessages]);
 
   const handleSendMessage = async () => {
-    const userId = localStorage.getItem('userId');
+    const userId = sessionStorage.getItem('userId');
     if (newMessage.trim()) {
       const userMessageId = generateUniqueId();
       // Display user message immediately

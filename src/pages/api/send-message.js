@@ -58,8 +58,8 @@ function waitForResponse(openai, threadId, runId) {
 export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
-      const { message, aiThinkingMessageId, userId, threadId } = req.body;
-
+      const { message, aiThinkingMessageId, userId } = req.body;
+      let {threadId} = req.body;
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
         baseURL: "https://oai.hconeai.com/v1",
