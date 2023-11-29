@@ -1,18 +1,37 @@
+// pages/api/send-message.js
 import OpenAI from 'openai';
 const { Kafka } = require('kafkajs');
 
-// Reading Kafka broker address from environment variables
 const kafkaBrokerAddress = process.env.KAFKA_BROKER_ADDRESS || 'deeplx.xxhzjk.com:9094';
 
-// Kafka setup
 const kafka = new Kafka({
   clientId: 'chat-app',
   brokers: [kafkaBrokerAddress]
 });
 const producer = kafka.producer();
 
-// Connect the Kafka producer
 producer.connect();
+
+async function createThread(openai) {
+  const thread = await openai.beta.threads.create();
+  return thread.id;
+}
+
+async function addMessageToThread(openai, threadId, message) {
+  await openai.beta.threads.messages.create(
+    threadId,
+    {role: "user",
+    content: message}
+  );
+}
+
+async function runThread(openai, threadId, assistantId) {
+  const run = await openai.beta.threads.runs.create(
+    threadId,
+    {assistant_id: assistantId}
+  );
+  return run.id;
+}
 
 // Function to wait for OpenAI response
 function waitForResponse(openai, threadId, runId) {
@@ -40,8 +59,6 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
       const { message, aiThinkingMessageId } = req.body;
-
-      // Configure OpenAI
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
         baseURL: "https://oai.hconeai.com/v1",
@@ -50,18 +67,12 @@ export default async function handler(req, res) {
         },
       });
 
-      // Set Assistant ID
       const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
-      const run = await openai.beta.threads.createAndRun({
-        assistant_id: assistantId,
-        thread: {
-          messages: [{ role: "user", content: message }],
-        },
-      });
-
-      const threadId = run.thread_id;
-      const completedRun = await waitForResponse(openai, threadId, run.id);
+      const threadId = await createThread(openai);
+      await addMessageToThread(openai, threadId, message);
+      const runId = await runThread(openai, threadId, assistantId);
+      const completedRun = await waitForResponse(openai, threadId, runId);
       const threadMessages = await openai.beta.threads.messages.list(threadId);
 
       if (threadMessages?.data?.length > 0) {
