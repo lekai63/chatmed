@@ -58,7 +58,8 @@ function waitForResponse(openai, threadId, runId) {
 export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
-      const { message, aiThinkingMessageId } = req.body;
+      const { message, aiThinkingMessageId, userId } = req.body;
+
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
         baseURL: "https://oai.hconeai.com/v1",
@@ -69,8 +70,15 @@ export default async function handler(req, res) {
 
       const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
-      const threadId = await createThread(openai);
-      await addMessageToThread(openai, threadId, message);
+  // 检查是否有提供 thread ID，如果没有则创建新的线程
+  let threadId = req.body.threadId;
+  if (!threadId) {
+    // 调用 createThread 函数来创建新的线程
+    threadId = await createThread(openai);
+  }
+
+  await addMessageToThread(openai, threadId, message);
+
       const runId = await runThread(openai, threadId, assistantId);
       const completedRun = await waitForResponse(openai, threadId, runId);
       const threadMessages = await openai.beta.threads.messages.list(threadId);

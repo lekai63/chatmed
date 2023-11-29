@@ -51,9 +51,28 @@ const ChatBox = () => {
       console.error('EventSource failed:', error);
     };
 
+     // 处理网页关闭
+        // 从 localStorage 获取 threadId
+   
+  const handleWindowClose = async () => {
+
+    const threadId = localStorage.getItem('threadId');
+    if (!threadId) {
+  console.error("No threadId found in localStorage");
+  return;
+}
+    
+      // 发送请求结束 thread
+      await axios.post('/api/end-thread', { threadId });
+    
+  };
+
+  window.addEventListener('beforeunload', handleWindowClose);
+
     return () => {
       eventSource.close();
       console.log("EventSource closed");
+      window.removeEventListener('beforeunload', handleWindowClose);
     };
   }, [setMessages]);
 
