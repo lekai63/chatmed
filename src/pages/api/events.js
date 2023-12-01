@@ -1,4 +1,5 @@
-import { RedisClient } from "redis";
+import { createClient } from 'redis';
+
 
 const redisClient = createClient({
   url: `rediss://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`, // 使用环境变量
@@ -10,8 +11,11 @@ const redisClient = createClient({
   password: process.env.REDIS_PASSWORD, // 如果有密码
 });
 redisClient.on("error", function (error) {
-  console.error(error);
+  console.error("Redis Client Error:", error);
 });
+// 尝试连接
+redisClient.connect().catch(console.error);
+
 export default async function handler(req, res) {
   const userId = req.query.userId; // 从请求中获取用户ID
   console.log(`Received userId: ${userId}`); // 日志用户ID

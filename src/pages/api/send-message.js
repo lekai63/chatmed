@@ -7,7 +7,8 @@ import {
 } from "../../lib/openai";
 import devLog from "../../utils/devLog";
 
-import { RedisClient } from "redis";
+import { createClient } from 'redis';
+
 
 const redisClient = createClient({
   url: `rediss://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`, // 使用环境变量
@@ -20,8 +21,10 @@ const redisClient = createClient({
 });
 
 redisClient.on("error", function (error) {
-  console.error(error);
+  console.error("Redis Client Error:", error);
 });
+// 尝试连接
+redisClient.connect().catch(console.error);
 
 export default async function handler(req, res) {
   try {
@@ -31,10 +34,9 @@ export default async function handler(req, res) {
 
       const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
-      // 检查是否有提供 thread ID，如果没有则创建新的线程
       if (!threadId) {
-        // TODO 返回，调用 createThread 函数来创建新的线程
-        threadId = await createThread(openai);
+      // 如果没有 threadId，则返回错误
+      return res.status(400).json({ success: false, message: "Missing threadId" });
       }
 
       await addMessageToThread(threadId, message);
