@@ -17,7 +17,7 @@ export default async function handler(req, res) {
         "Access-Control-Allow-Origin": "*",
         "X-Accel-Buffering": "no",
         "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
+        "Connection": "keep-alive",
       });
       res.write("\n");
       res.write(`event: customMessage\ndata: ${JSON.stringify(content)}\n\n`);

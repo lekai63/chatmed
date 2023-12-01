@@ -5,6 +5,8 @@ import {
   runThread,
   waitForResponse,
 } from "../../lib/openai";
+import devLog from "../../utils/devLog";
+
 import { RedisClient } from "redis";
 
 const redisClient = new RedisClient({
@@ -32,13 +34,13 @@ export default async function handler(req, res) {
 
       await addMessageToThread(threadId, message);
 
-      const runId = await runThread(openai, threadId, assistantId);
-      const completedRun = await waitForResponse(openai, threadId, runId);
+      const runId = await runThread(threadId, assistantId);
+      const completedRun = await waitForResponse(threadId, runId);
       const threadMessages = await openai.beta.threads.messages.list(threadId);
 
       if (threadMessages?.data?.length > 0) {
         const latestMessage = threadMessages.data[0];
-        
+        devLog("aiMessage publish:",latestMessage.content[0].text.value)
         // 使用 Redis 发布消息
         redisClient.publish(
           "chatmed",
