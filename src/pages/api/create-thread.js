@@ -1,12 +1,12 @@
-// pages/api/create-thread.js
 import { createThread } from '../../lib/openai';
+import devLog from "../../utils/devLog";
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
 
     try {
       const threadId = await createThread();
-
+      devLog("threadId has been created:",threadId);
       res.status(200).json({ success: true, threadId: threadId });
     } catch (error) {
       console.error('Error creating thread:', error);

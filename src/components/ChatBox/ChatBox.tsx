@@ -4,9 +4,8 @@ import MessageList from './MessageList';
 import InputBox from './InputBox';
 import { ChatContext } from '../../contexts/ChatContext';
 import axios from 'axios';
+import { v4 as uuidv4 } from "uuid";
 
-let messageIdCounter = 0;
-const generateUniqueId = () => messageIdCounter++;
 
 const ChatBox = () => {
   const { messages, setMessages } = useContext(ChatContext);
@@ -76,7 +75,7 @@ const ChatBox = () => {
   const handleSendMessage = async () => {
     const userId = sessionStorage.getItem('userId');
     if (newMessage.trim()) {
-      const userMessageId = generateUniqueId();
+      const userMessageId = uuidv4();
       // Display user message immediately
       setMessages(prevMessages => [
         ...prevMessages,
@@ -85,7 +84,7 @@ const ChatBox = () => {
 
       setNewMessage('');
 
-      const aiThinkingMessageId = generateUniqueId();
+      const aiThinkingMessageId = uuidv4();
 
      // Display AI thinking message
     setMessages(prevMessages => [
