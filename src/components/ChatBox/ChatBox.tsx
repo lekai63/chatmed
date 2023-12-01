@@ -1,120 +1,47 @@
-// components/ChatBox/ChatBox.tsx
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import MessageList from './MessageList';
-import InputBox from './InputBox';
+import MessageList from "./MessageList";
+import InputBox from "./InputBox";
 import { ChatContext } from '../../contexts/ChatContext';
-import axios from 'axios';
+import axios from "axios";
+import useSSE from "../../hooks/useSSE";
 import { v4 as uuidv4 } from "uuid";
 
-
 const ChatBox = () => {
-  const { messages, setMessages } = useContext(ChatContext);
-  const [newMessage, setNewMessage] = useState('');
-  const aiThinkingTimer = useRef<number | null>(null);
-  const aiThinkingTimeLimit = 30; // 30 seconds countdown
-  const threadId = sessionStorage.getItem('threadId');
-  const userId = sessionStorage.getItem('userId');
+  const { messages, setMessages } = useContext(ChatContext); // 使用 useContext 获取 messages 和 setMessages
+  const [newMessage, setNewMessage] = useState("");
+  const threadId = sessionStorage.getItem("threadId");
+  const userId = sessionStorage.getItem("userId");
 
-
-  useEffect(() => {
-    if (!userId) {
-      console.error("No userId found in sessionStorage");
-      return;
-    }
-
-    if (!threadId) {
-      console.error("No threadId found in sessionStorage");
-      return;
-    }
-    console.log(`Establishing SSE connection with userId: ${userId}`);
-    const eventSource = new EventSource(`/api/events?userId=${userId}`);
-
-    eventSource.addEventListener('customMessage', (event) => {
-      console.log("Received SSE data:", event.data);
-      try {
-        const data = JSON.parse(event.data);
-    
-        if (data.aiThinkingMessageId) {
-
-          if (aiThinkingTimer.current !== null) {
-            window.clearInterval(aiThinkingTimer.current);
-        aiThinkingTimer.current = null;
-          }
-          
-          setMessages(prevMessages => prevMessages.map(msg =>
-            msg.id === data.aiThinkingMessageId ? { ...msg, text: data.aiMessage, isUser: false, timestamp: new Date() } : msg
-          ));
-      
-        }
-      } catch (error) {
-        console.error('Error parsing SSE data:', error);
-      }
-    });
-
-    eventSource.onerror = (error) => {
-      console.error('EventSource failed:', error);
-    };
-
-     // 处理网页关闭   
-     const handleWindowClose = () => {
-      console.log("Window is closing");
-      // 这里可以放置其他需要在窗口关闭前执行的逻辑
-    };
-
-  window.addEventListener('beforeunload', handleWindowClose);
-
- // 在组件卸载时执行的清理操作
- return () => {
-  window.removeEventListener('beforeunload', handleWindowClose);
-  eventSource.close();
-  console.log("EventSource closed");
-
-};
-}, [userId, threadId, setMessages]);
+  useSSE(userId, threadId);
 
   const handleSendMessage = async () => {
-    const userId = sessionStorage.getItem('userId');
+    const userId = sessionStorage.getItem("userId");
     if (newMessage.trim()) {
       const userMessageId = uuidv4();
-      // Display user message immediately
-      setMessages(prevMessages => [
+
+      // 直接显示用户消息
+      setMessages((prevMessages) => [
         ...prevMessages,
-        { id: userMessageId, text: newMessage, isUser: true, timestamp: new Date() }
+        {
+          id: userMessageId,
+          text: newMessage,
+          isUser: true,
+          timestamp: new Date(),
+        },
       ]);
 
-      setNewMessage('');
-
-      const aiThinkingMessageId = uuidv4();
-
-     // Display AI thinking message
-    setMessages(prevMessages => [
-      ...prevMessages,
-      { id: aiThinkingMessageId, text: "AI is thinking... "+ aiThinkingTimeLimit, isUser: false, timestamp: new Date() }
-    ]);
-
-    let countdown = aiThinkingTimeLimit;
-    aiThinkingTimer.current =  window.setInterval(() => {
-      countdown--;
-      setMessages(prevMessages => prevMessages.map(msg =>
-        msg.id === aiThinkingMessageId ? { ...msg, text: `AI is thinking... ${countdown}` } : msg
-      ));
-
-      if (countdown <= 0) {
-        if (aiThinkingTimer.current !== null) {
-          window.clearInterval(aiThinkingTimer.current);
-      aiThinkingTimer.current = null;
-        }
-        setMessages(prevMessages => prevMessages.filter(msg => msg.id !== aiThinkingMessageId));
-      }
-    }, 1000);
+      setNewMessage("");
 
       try {
-        await axios.post('/api/send-message', { message: newMessage, userId: userId, aiThinkingMessageId: aiThinkingMessageId,threadId: threadId });
+        // 发送消息到后端
+        await axios.post("/api/send-message", {
+          message: newMessage,
+          userId: userId,
+          threadId: threadId,
+        });
       } catch (error) {
-        console.error('Error sending message:', error);
+        console.error("Error sending message:", error);
       }
-
-     
     }
   };
 
@@ -123,18 +50,22 @@ const ChatBox = () => {
   };
 
   const handleKeyPress = (event) => {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       handleSendMessage();
     }
   };
 
   return (
-    <div className="chat-box flex flex-col h-full overflow-auto"> {/* Ensure overflow-auto for scrolling */}
+    <div className="chat-box flex flex-col h-full overflow-auto">
       <MessageList messages={messages} />
       <InputBox
         value={newMessage}
-        onChange={handleInput}
-        onKeyPress={handleKeyPress}
+        onChange={(event) => setNewMessage(event.target.value)}
+        onKeyPress={(event) => {
+          if (event.key === 'Enter') {
+            handleSendMessage();
+          }
+        }}
         onSend={handleSendMessage}
       />
     </div>
