@@ -1,8 +1,16 @@
 import { RedisClient } from "redis";
 
-const redisClient = new RedisClient({
-  host: process.env.REDIS_HOST,
-  port: process.env.REDIS_PORT,
+const redisClient = createClient({
+  url: `rediss://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`, // 使用环境变量
+  socket: {
+    tls: true, // 开启 TLS
+    rejectUnauthorized: false // 在本地开发时可能需要设置为 false
+  },
+  username: process.env.REDIS_USER, // 如果有用户名
+  password: process.env.REDIS_PASSWORD, // 如果有密码
+});
+redisClient.on("error", function (error) {
+  console.error(error);
 });
 export default async function handler(req, res) {
   const userId = req.query.userId; // 从请求中获取用户ID
