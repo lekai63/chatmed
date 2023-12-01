@@ -9,13 +9,14 @@ import { v4 as uuidv4 } from "uuid";
 const ChatBox = () => {
   const { messages, setMessages } = useContext(ChatContext); // 使用 useContext 获取 messages 和 setMessages
   const [newMessage, setNewMessage] = useState("");
-  const threadId = sessionStorage.getItem("threadId");
-  const userId = sessionStorage.getItem("userId");
+    // 安全地从 sessionStorage 获取 threadId 和 userId
+    const threadId = sessionStorage.getItem("threadId") || "";
+    const userId = sessionStorage.getItem("userId") || "";
 
   useSSE(userId, threadId);
 
   const handleSendMessage = async () => {
-    const userId = sessionStorage.getItem("userId");
+    const userId = sessionStorage.getItem("userId") || "";
     if (newMessage.trim()) {
       const userMessageId = uuidv4();
 
