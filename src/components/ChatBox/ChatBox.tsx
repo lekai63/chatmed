@@ -62,7 +62,7 @@ const ChatBox = () => {
       <InputBox
         value={newMessage}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => setNewMessage(event.target.value)}
-        onKeyPress={(event) => {
+        onKeyPress={(event: React.KeyboardEvent<HTMLInputElement>) => {
           if (event.key === 'Enter') {
             handleSendMessage();
           }

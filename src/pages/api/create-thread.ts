@@ -1,12 +1,12 @@
+import { NextApiRequest, NextApiResponse } from 'next';
 import { createThread } from '../../lib/openai';
 import devLog from "../../utils/devLog";
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
-
     try {
       const threadId = await createThread();
-      devLog("threadId has been created:",threadId);
+      devLog("Thread ID has been created:", threadId);
       res.status(200).json({ success: true, threadId: threadId });
     } catch (error) {
       console.error('Error creating thread:', error);

@@ -1,9 +1,10 @@
 // pages/api/send-message.js
+import { NextApiRequest, NextApiResponse } from 'next';
 import {
-  createThread,
   addMessageToThread,
   runThread,
   waitForResponse,
+  threadMessagesList
 } from "../../lib/openai";
 import devLog from "../../utils/devLog";
 
@@ -26,7 +27,7 @@ redisClient.on("error", function (error) {
 // 尝试连接
 redisClient.connect().catch(console.error);
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method === "POST") {
       const { message, aiThinkingMessageId, userId } = req.body;
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
 
       const assistantId = process.env.OPENAI_ASSISTANT_ID;
 
-      if (!threadId) {
+      if (!threadId || !assistantId ) {
       // 如果没有 threadId，则返回错误
       return res.status(400).json({ success: false, message: "Missing threadId" });
       }
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
 
       const runId = await runThread(threadId, assistantId);
       const completedRun = await waitForResponse(threadId, runId);
-      const threadMessages = await openai.beta.threads.messages.list(threadId);
+      const threadMessages = await threadMessagesList(threadId);
 
       if (threadMessages?.data?.length > 0) {
         const latestMessage = threadMessages.data[0];

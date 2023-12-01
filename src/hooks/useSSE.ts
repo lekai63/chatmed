@@ -1,7 +1,7 @@
 import { useEffect, useContext } from 'react';
 import { ChatContext } from '../contexts/ChatContext';
 
-const useSSE = (userId, threadId) => {
+const useSSE = (userId:string, threadId:string) => {
   const { setMessages } = useContext(ChatContext);
 
   useEffect(() => {

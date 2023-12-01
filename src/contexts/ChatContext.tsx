@@ -2,7 +2,7 @@
 import React, { createContext, useState } from 'react';
 
 // 定义消息类型
-type MessageType = {
+export type MessageType = {
   id: string;
   text: string;
   isUser: boolean;

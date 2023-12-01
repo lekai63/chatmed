@@ -1,3 +1,4 @@
+import { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from 'redis';
 
 
@@ -16,7 +17,7 @@ redisClient.on("error", function (error) {
 // 尝试连接
 redisClient.connect().catch(console.error);
 
-export default async function handler(req, res) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userId = req.query.userId; // 从请求中获取用户ID
   console.log(`Received userId: ${userId}`); // 日志用户ID
 

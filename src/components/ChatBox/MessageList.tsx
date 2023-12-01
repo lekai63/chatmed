@@ -1,8 +1,12 @@
 import React, { useRef, useEffect } from 'react';
 import Message from './Message';
+import { MessageType } from '../../contexts/ChatContext';
 
-const MessageList = ({ messages }) => {
-  // 显式地指定 ref 类型为 HTMLDivElement
+interface MessageListProps {
+  messages: MessageType[]; // 使用导入的MessageType
+}
+
+const MessageList: React.FC<MessageListProps> = ({ messages }) => {
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -14,7 +18,7 @@ const MessageList = ({ messages }) => {
   return (
     <div className="chat-message-list flex-1 overflow-y-auto pb-16">
       {messages
-        .sort((a, b) => a.timestamp - b.timestamp) // 根据时间戳排序
+        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
         .map((message, index) => (
         <Message key={index} {...message} />
       ))}
