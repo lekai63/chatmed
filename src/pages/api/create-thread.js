@@ -1,24 +1,11 @@
 // pages/api/create-thread.js
-import OpenAI from 'openai';
+import { createThread } from '../../lib/openai';
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
-    const { userId } = req.body;
-
-    // 初始化 OpenAI
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: "https://oai.hconeai.com/v1",
-      defaultHeaders: {
-        "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-      },
-    });
 
     try {
-      // 创建新的线程
-      const threadResponse = await openai.beta.threads.create();
-
-      const threadId = threadResponse.id;
+      const threadId = await createThread();
 
       res.status(200).json({ success: true, threadId: threadId });
     } catch (error) {
