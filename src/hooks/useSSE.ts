@@ -1,6 +1,7 @@
 import { useEffect, useContext } from 'react';
 import { ChatContext } from '../contexts/ChatContext';
 import devLog from "../utils/devLog";
+import axios from 'axios';
 
 const useSSE = (userId:string, threadId:string) => {
   const { setMessages } = useContext(ChatContext);
@@ -10,13 +11,21 @@ const useSSE = (userId:string, threadId:string) => {
 
     const eventSource = new EventSource(`/api/events?userId=${userId}`);
 
-    eventSource.addEventListener('customMessage', (event) => {
+    eventSource.addEventListener('customMessage',async (event) => {
       devLog("sse customMessage arrived");
       try {
         const data = JSON.parse(event.data);
         setMessages(prevMessages => prevMessages.map(msg =>
           msg.id === data.aiThinkingMessageId ? { ...msg, text: data.aiMessage, isUser: false, timestamp: new Date() } : msg
         ));
+
+           // 日志记录接收到的消息
+           devLog(`Received message: ${data.aiMessage}`);
+             // 发送确认信号到服务器
+        await axios.post('/api/message-confirmation', {
+          messageId: data.aiThinkingMessageId,
+          threadId: threadId
+        });
       } catch (error) {
         console.error('Error parsing SSE data:', error);
       }

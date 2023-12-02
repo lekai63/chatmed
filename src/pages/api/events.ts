@@ -23,6 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const messageHandler = (message: string) => {
     const content = JSON.parse(message);
     if (content.userId === userId) {
+      devLog("messageHandler func log,content send:",content);
       res.write(`event: customMessage\ndata: ${JSON.stringify(content)}\n\n`);
     }
   };
