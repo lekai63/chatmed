@@ -9,8 +9,7 @@ import {
 import redisClient from '../../lib/redisClient';
 import devLog from "../../utils/devLog";
 
-
-
+const channel = process.env.REDIS_CHANNEL || "chatmed";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -36,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         devLog("aiMessage publish:",latestMessage.content[0].text.value)
         // 使用 Redis 发布消息
         redisClient.publish(
-          "chatmed",
+          channel,
           JSON.stringify({
             userId,
             userMessage: message,

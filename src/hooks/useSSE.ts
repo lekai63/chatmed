@@ -1,5 +1,6 @@
 import { useEffect, useContext } from 'react';
 import { ChatContext } from '../contexts/ChatContext';
+import devLog from "../utils/devLog";
 
 const useSSE = (userId:string, threadId:string) => {
   const { setMessages } = useContext(ChatContext);
@@ -10,6 +11,7 @@ const useSSE = (userId:string, threadId:string) => {
     const eventSource = new EventSource(`/api/events?userId=${userId}`);
 
     eventSource.addEventListener('customMessage', (event) => {
+      devLog("sse customMessage arrived");
       try {
         const data = JSON.parse(event.data);
         setMessages(prevMessages => prevMessages.map(msg =>
