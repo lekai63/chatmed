@@ -1,5 +1,7 @@
 # 使用 Node.js 官方镜像
 FROM node:latest
+# 使用 Node.js 官方镜像
+FROM node:latest
 
 # 设置工作目录
 WORKDIR /app
@@ -7,9 +9,9 @@ WORKDIR /app
 # 拷贝除 package-lock.json 外的所有项目文件
 COPY [^package-lock.json]* ./
 
-# 设置 npm 镜像 安装依赖
-RUN npm config set registry http://mirror.npm.lan  && npm install
-
+# 安装依赖
+RUN npm config set registry https://mirrors.tencent.com/npm
+RUN npm install
 
 # 构建应用
 RUN npm run build
