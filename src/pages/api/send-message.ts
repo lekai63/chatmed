@@ -6,24 +6,11 @@ import {
   waitForResponse,
   threadMessagesList
 } from "../../lib/openai";
+import redisClient from '../../lib/redisClient';
 import devLog from "../../utils/devLog";
 
-import { createClient } from 'redis';
 
 
-const redisClient = createClient({
-  url: `redis://${process.env.REDIS_USER}:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`, // 使用环境变量
-  socket: {
-    tls: true, // 开启 TLS
-    rejectUnauthorized: false // 在本地开发时可能需要设置为 false
-  },
-});
-
-redisClient.on("error", function (error) {
-  console.error("Redis Client Error:", error);
-});
-// 尝试连接
-redisClient.connect().catch(console.error);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
