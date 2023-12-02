@@ -1,7 +1,5 @@
 # 使用 Node.js 官方镜像
 FROM node:latest
-# 使用 Node.js 官方镜像
-FROM node:latest
 
 # 设置工作目录
 WORKDIR /app
