@@ -30,8 +30,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         "Cache-Control": "no-cache, no-transform",
         "Connection": "keep-alive",
       });
-      res.write("\n");
-      res.write(`event: customMessage\ndata: ${JSON.stringify(content)}\n\n`);
+      redisClient.on("message", (channel, message) => {
+        const content = JSON.parse(message);
+        if (content.userId === userId) {
+          res.write(`event: customMessage\ndata: ${JSON.stringify(content)}\n\n`);
+        }
+      });
     }
   });
 
