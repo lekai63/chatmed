@@ -16,10 +16,9 @@ const ChatBox = () => {
   useSSE(userId, threadId);
 
   const handleSendMessage = async () => {
-    const userId = sessionStorage.getItem("userId") || "";
     if (newMessage.trim()) {
       const userMessageId = uuidv4();
-
+      const aiThinkingMessageId = uuidv4();
       // 直接显示用户消息
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -29,6 +28,12 @@ const ChatBox = () => {
           isUser: true,
           timestamp: new Date(),
         },
+        {
+          id: aiThinkingMessageId,
+          text: "AI is thinking...",
+          isUser: false,
+          timestamp: new Date(),
+        }
       ]);
 
       setNewMessage("");
@@ -39,6 +44,7 @@ const ChatBox = () => {
           message: newMessage,
           userId: userId,
           threadId: threadId,
+          aiThinkingMessageId: aiThinkingMessageId,
         });
       } catch (error) {
         console.error("Error sending message:", error);

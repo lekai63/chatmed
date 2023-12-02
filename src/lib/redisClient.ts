@@ -1,24 +1,35 @@
-import { createClient } from 'redis';
-import devLog from "../utils/devLog";
+import { createClient, RedisClientType } from "redis";
 
-// 根据环境变量确定是否使用 TLS
-const isProduction = process.env.NODE_ENV === 'production';
 const redisUrl = process.env.REDIS_URL;
+let redisClient: RedisClientType | null = null;
 
-const redisClient = createClient({
-  url: redisUrl,
-  socket: isProduction ? {
-    tls: true,
-    rejectUnauthorized: false // 根据需要配置
-  } : {
-    tls: false
+// 创建 Redis 客户端的函数
+const createRedisClient = (): RedisClientType => {
+  const client: RedisClientType = createClient({
+    url: process.env.REDIS_URL,
+    socket: {
+      tls: process.env.NODE_ENV === "production",
+      rejectUnauthorized: false,
+    },
+  });
+
+  client.on("error", (error) => {
+    console.error("Redis Client Error:", error);
+  });
+
+  client
+    .connect()
+    .then(() => console.log("Redis client connected"))
+    .catch((error) => console.error("Redis connection error:", error));
+
+  return client;
+};
+
+const getRedisClient = () => {
+  if (!redisClient) {
+    redisClient = createRedisClient();
   }
-});
+  return redisClient;
+};
 
-redisClient.on("error", function (error) {
-  console.error("Redis Client Error:", error);
-});
-// 尝试连接
-redisClient.connect().then(() => console.log("Redis client connected")).catch(console.error);
-
-export default redisClient;
+export default getRedisClient;
