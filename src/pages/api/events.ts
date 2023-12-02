@@ -10,16 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // 订阅频道，并提供一个回调函数
   const channel = process.env.REDIS_CHANNEL || "chatmed";
-redisClient.subscribe(channel, (err, count) => {
-  if (err) {
-    console.error('Failed to subscribe: ', err);
-  } else {
-    console.log(`Subscribed successfully! This client is currently subscribed to ${count} channels.`);
-  }
-});
-
-
-  redisClient.on("message", (channel, message) => {
+  redisClient.subscribe(channel, (message) => {
     devLog("SSE request received");
     const content = JSON.parse(message);
     if (content.userId === userId) {
