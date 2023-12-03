@@ -3,13 +3,9 @@ const isProd = process.env.NODE_ENV === 'production'
 
 const nextConfig = {
   reactStrictMode: true,
-  env: {
-    REDIS_URL: process.env.REDIS_URL,
-    // 其他需要的环境变量
-  },
-
+  hostname: "0.0.0.0",
   // deploy - 设置静态资源的基础 URL
-  assetPrefix: isProd ? 'https://deeplx.xxhzjk.com' : '',
+  assetPrefix: isProd ? 'http://deeplx.xxhzjk.com:3000' : '',
   
   // 使用docker 部署在服务器
   output: 'standalone',
