@@ -1,10 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSubClient } from '../../lib/redisClient';
 import devLog from "../../utils/devLog";
-
+import { runMiddleware,cors } from '../../utils/corsMiddleware';
 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await runMiddleware(req, res, cors);
   const userId = req.query.userId; // 从请求中获取用户ID
   console.log(`Received userId: ${userId}`); // 日志用户ID
 

@@ -8,10 +8,12 @@ import {
 } from "../../lib/openai";
 import {getPubClient} from '../../lib/redisClient';
 import devLog from "../../utils/devLog";
+import { runMiddleware,cors } from '../../utils/corsMiddleware';
 
 const channel = process.env.REDIS_CHANNEL || "chatmed";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await runMiddleware(req, res, cors);
   try {
     if (req.method === "POST") {
       const { message, aiThinkingMessageId, userId } = req.body;

@@ -1,8 +1,10 @@
 // pages/api/message-confirmation.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import devLog from "../../utils/devLog";
+import { runMiddleware,cors } from '../../utils/corsMiddleware';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await runMiddleware(req, res, cors);
   if (req.method === 'POST') {
     const { messageId, threadId } = req.body;
 

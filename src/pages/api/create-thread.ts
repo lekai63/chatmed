@@ -1,8 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createThread } from '../../lib/openai';
 import devLog from "../../utils/devLog";
+import { runMiddleware,cors } from '../../utils/corsMiddleware';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await runMiddleware(req, res, cors);
   if (req.method === 'POST') {
     try {
       const threadId = await createThread();
