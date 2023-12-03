@@ -3,7 +3,6 @@ const isProd = process.env.NODE_ENV === 'production'
 
 const nextConfig = {
   reactStrictMode: true,
-  hostname: "0.0.0.0",
   // deploy - 设置静态资源的基础 URL
   assetPrefix: isProd ? 'http://deeplx.xxhzjk.com:3000' : '',
   
