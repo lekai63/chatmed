@@ -15,17 +15,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # - name: Set up Node.js
-      #   uses: actions/setup-node@v2
-      #   with:
-      #     node-version: 'lts/*'
-
-      # - name: Install Dependencies
-      #   run: npm install
-
-      # !! 删除腾讯云repo下的package-lock.json
+     # !! 删除腾讯云repo下的package-lock.json
       - name: remove package-lock file 
         run: rm package-lock*
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 'lts/*'
+
+      - name: Install Dependencies
+        run:  npm install --package-lock-only
+
+
 
       - name: create env
         uses: SpicyPizza/create-envfile@v2.0
