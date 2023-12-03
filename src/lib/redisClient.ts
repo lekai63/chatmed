@@ -8,8 +8,7 @@ const createRedisClient = (): RedisClientType => {
   const client: RedisClientType = createClient({
     url: process.env.REDIS_URL,
     socket: {
-      tls: process.env.NODE_ENV === "production",
-      rejectUnauthorized: false,
+      tls: false
     },
   });
 
