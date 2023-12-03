@@ -6,4 +6,3 @@ Dockerfile
 .gitignore
 README.md
 .env.local
-package-lock.json*
