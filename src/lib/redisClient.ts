@@ -1,8 +1,8 @@
 import { createClient, RedisClientType } from "redis";
 
 const redisUrl = process.env.REDIS_URL;
-let redisClient: RedisClientType | null = null;
-
+let pubClient: RedisClientType | null = null;
+let subClient: RedisClientType | null = null;
 // 创建 Redis 客户端的函数
 const createRedisClient = (): RedisClientType => {
   const client: RedisClientType = createClient({
@@ -24,11 +24,17 @@ const createRedisClient = (): RedisClientType => {
   return client;
 };
 
-const getRedisClient = () => {
-  if (!redisClient) {
-    redisClient = createRedisClient();
+export const getPubClient = () => {
+  if (!pubClient) {
+    pubClient = createRedisClient();
   }
-  return redisClient;
+  return pubClient;
 };
 
-export default getRedisClient;
+
+export const getSubClient = () => {
+  if (!subClient) {
+    subClient = createRedisClient();
+  }
+  return subClient;
+};

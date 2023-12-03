@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import getRedisClient from '../../lib/redisClient';
+import { getSubClient } from '../../lib/redisClient';
 import devLog from "../../utils/devLog";
 
 
@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // 订阅频道，并提供一个回调函数
   const channel = process.env.REDIS_CHANNEL || "chatmed";
-  const  redisClient = getRedisClient();
+  const  redisClient = getSubClient();
   if (!redisClient) {
     // 处理 redisClient 为 null 的情况
     return res.status(500).send('Redis client is not initialized');

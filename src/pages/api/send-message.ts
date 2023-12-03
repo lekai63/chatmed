@@ -6,7 +6,7 @@ import {
   waitForResponse,
   threadMessagesList
 } from "../../lib/openai";
-import getRedisClient from '../../lib/redisClient';
+import {getPubClient} from '../../lib/redisClient';
 import devLog from "../../utils/devLog";
 
 const channel = process.env.REDIS_CHANNEL || "chatmed";
@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const latestMessage = threadMessages.data[0];
         devLog("aiMessage publish:",latestMessage.content[0].text.value)
         // 使用 Redis 发布消息
-        const  redisClient = getRedisClient();
+        const  redisClient = getPubClient();
         redisClient.publish(
           channel,
           JSON.stringify({
