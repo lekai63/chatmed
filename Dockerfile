@@ -1,4 +1,5 @@
 # doc  https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
+
 FROM node:18-alpine AS base
 
 # Install dependencies only when needed
@@ -53,6 +54,10 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# 环境变量需要在构建时写入 https://www.hyperxiao.top/zh-CN/posts/5
+# 复制.env文件用于运行时
+COPY .env ./
 
 USER nextjs
 
