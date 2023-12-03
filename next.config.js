@@ -4,7 +4,7 @@ const isProd = process.env.NODE_ENV === 'production'
 const nextConfig = {
   reactStrictMode: true,
   // deploy - 设置静态资源的基础 URL
-  assetPrefix: isProd ? 'http://deeplx.xxhzjk.com:3000' : '',
+  assetPrefix: isProd ? process.env.CDN_URL : '',
   
   // 使用docker 部署在服务器
   output: 'standalone',
