@@ -15,19 +15,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: create env
-        uses: SpicyPizza/create-envfile@v2.0
-        with:
-          envkey_OPENAI_API_KEY: ${{secrets.OPENAI_API_KEY}}
-          envkey_OPENAI_ASSISTANT_ID: ${{secrets.OPENAI_ASSISTANT_ID}}
-          envkey_HELICONE_API_KEY: ${{secrets.HELICONE_API_KEY}}
-     # 登录至registry
-      - name: Login to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.HUB }}
-          username: ${{ secrets.UCLOUD_USERNAME }}
-          password: ${{ secrets.UCLOUD_PASSWORD }}
       # - name: Set up Node.js
       #   uses: actions/setup-node@v2
       #   with:
@@ -36,8 +23,24 @@ jobs:
       # - name: Install Dependencies
       #   run: npm install
 
-      - name: Rename package-lock file
-        run: mv package-lock.vercel.json package-lock.json
+      # !! 删除腾讯云repo下的package-lock.json
+      - name: remove package-lock file 
+        run: rm package-lock*
+
+      - name: create env
+        uses: SpicyPizza/create-envfile@v2.0
+        with:
+          envkey_OPENAI_API_KEY: ${{secrets.OPENAI_API_KEY}}
+          envkey_OPENAI_ASSISTANT_ID: ${{secrets.OPENAI_ASSISTANT_ID}}
+          envkey_HELICONE_API_KEY: ${{secrets.HELICONE_API_KEY}}
+
+      # 登录至registry
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.HUB }}
+          username: ${{ secrets.UCLOUD_USERNAME }}
+          password: ${{ secrets.UCLOUD_PASSWORD }}
 
       - name: Build and Push
         uses: docker/build-push-action@v5
