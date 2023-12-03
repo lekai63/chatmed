@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isProd = process.env.NODE_ENV === 'production'
+
 const nextConfig = {
   reactStrictMode: true,
   env: {
@@ -7,12 +9,12 @@ const nextConfig = {
   },
 
   // deploy - 设置静态资源的基础 URL
-  assetPrefix: 'https://chatmed.xxhzjk.com',
-
-  // deploy - 配置 Image 组件支持的外部域名
-  images: {
-    domains: ['chatmed.xxhzjk.com'],
-  },
+  assetPrefix: isProd ? 'https://deeplx.xxhzjk.com' : '',
+  
+  // 使用docker 部署在服务器
+  output: 'standalone',
+  // 导出静态资源 放到对象存储
+  // output: 'export',
 }
 
 module.exports = nextConfig
