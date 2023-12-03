@@ -8,7 +8,7 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 # 重新生成package-lock.json文件而无需实际下载依赖项
-RUN npm install --package-lock-only
+RUN npm config set registry https://registry.npmjs.org && npm install --package-lock-only
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 RUN \
