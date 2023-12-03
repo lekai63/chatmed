@@ -16,7 +16,7 @@ const Home = () => {
 
     const fetchThreadId = async () => {
       try {
-        const response = await axios.post("/api/create-thread", {
+        const response = await axios.post("${process.env.NEXT_PUBLIC_API_BASE_URL}/api/create-thread", {
           userId: sessionStorage.getItem("userId"),
         });
         if (response.data.success) {

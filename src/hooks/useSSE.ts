@@ -9,7 +9,7 @@ const useSSE = (userId:string, threadId:string) => {
   useEffect(() => {
     if (!userId || !threadId) return;
 
-    const eventSource = new EventSource(`/api/events?userId=${userId}`);
+    const eventSource = new EventSource(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/events?userId=${userId}`);
 
     eventSource.addEventListener('customMessage',async (event) => {
       devLog("sse customMessage arrived");
@@ -22,7 +22,7 @@ const useSSE = (userId:string, threadId:string) => {
            // 日志记录接收到的消息
            devLog(`Received message: ${data.aiMessage}`);
              // 发送确认信号到服务器
-        await axios.post('/api/message-confirmation', {
+        await axios.post('${process.env.NEXT_PUBLIC_API_BASE_URL}/api/message-confirmation', {
           messageId: data.aiThinkingMessageId,
           threadId: threadId
         });

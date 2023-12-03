@@ -40,7 +40,7 @@ const ChatBox = () => {
 
       try {
         // 发送消息到后端
-        await axios.post("/api/send-message", {
+        await axios.post("${process.env.NEXT_PUBLIC_API_BASE_URL}/api/send-message", {
           message: newMessage,
           userId: userId,
           threadId: threadId,
