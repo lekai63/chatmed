@@ -55,7 +55,7 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# 环境变量需要在构建时写入 https://www.hyperxiao.top/zh-CN/posts/5
+# 环境变量需要在action中写入 https://www.hyperxiao.top/zh-CN/posts/5
 # 复制.env文件用于运行时
 COPY .env ./
 
