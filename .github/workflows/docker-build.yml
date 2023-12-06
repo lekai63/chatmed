@@ -25,9 +25,20 @@ jobs:
           node-version: 'lts/*'
 
       - name: Install Dependencies
-        run:  npm install --package-lock-only
+        run:  npm install
 
+      # 构建和导出静态文件
+      - name: Build and Export Next.js App
+        run: |
+          npm run build
+          npm run export -o /tmp/nextjs_out
 
+      # 将静态文件上传到GitHub Artifacts
+      - name: Upload Static Files
+        uses: actions/upload-artifact@v2
+        with:
+          name: nextjs-static-files
+          path: /tmp/nextjs_out
 
       - name: create env
         uses: SpicyPizza/create-envfile@v2.0
