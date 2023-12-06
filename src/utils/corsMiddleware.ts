@@ -3,7 +3,7 @@ import Cors from 'cors';
 import { NextApiRequest, NextApiResponse } from 'next';
 // 初始化CORS中间件，根据需要调整配置
 const cors = Cors({
-  origin: process.env.CDN_URL, // 或者使用您的CDN的URL
+  origin: [process.env.CDN_URL,process.env.NEXT_PUBLIC_API_BASE_URL], 
   methods: ['GET', 'HEAD', 'POST'], // 根据需要调整允许的HTTP方法
 });
 
