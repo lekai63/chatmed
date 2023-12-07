@@ -7,9 +7,9 @@ const nextConfig = {
   assetPrefix: isProd ? process.env.CDN_URL : '',
   
   // 使用docker 部署在服务器
-  // output: 'standalone',
+  output: 'standalone',
   // 导出静态资源 放到对象存储
-  output: 'export',
+  // output: 'export',
 }
 
 module.exports = nextConfig
