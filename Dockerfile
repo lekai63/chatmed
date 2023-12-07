@@ -15,7 +15,8 @@ COPY package.json package-lock.json* ./
 COPY .env ./
 # 安装生产依赖
 RUN npm ci --only=production
-
+# 打印文件
+RUN ls
 # 复制生产代码
 COPY ./public ./public
 # Automatically leverage output traces to reduce image size
